@@ -66,7 +66,7 @@ docker-compose ps
 ```
 Deve aparecer `evolution_api` com status `Up`
 
-6. Teste no navegador: http://localhost:8080/manager
+6. Teste no navegador: http://localhost:8010/manager
    - Deve abrir o painel da Evolution API
 
 ---
@@ -234,3 +234,16 @@ Todos os dados ficam salvos localmente no arquivo `data/db.json`.
 ---
 
 *Versão 3.0 — Com integração Evolution API*
+
+####CLOUDFLARE#####
+
+# Terminal 1 — inicia o Node
+cd /home/laerte/Downloads/sistema_salao/
+./start.sh
+
+# Terminal 2 — inicia o Cloudflare
+# (seu comando habitual)
+
+Comando para executar o cloudflare via docker cmd cli
+
+docker run --rm -it   --network host   cloudflare/cloudflared:latest   tunnel --url http://localhost:3000

@@ -28,20 +28,63 @@ const CONFIG_FILE = path.join(__dirname, 'data', 'config.json');
 // ─── Middleware ───────────────────────────────────────────────────────────────
 app.use(cors());
 app.use(express.json());
-app.use(express.static(__dirname)); // serve index.html
+// Serve arquivos sem cache — garante versao mais recente no Cloudflare e navegador
+app.use(express.static(__dirname, {
+  etag: false,
+  lastModified: false,
+  setHeaders: (res) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  }
+}));
 
 // ─── DB helpers ──────────────────────────────────────────────────────────────
 async function readDB() {
+  // Tenta ler o arquivo principal
   try {
     await fs.ensureFile(DATA_FILE);
     const raw = await fs.readFile(DATA_FILE, 'utf8');
-    return raw ? JSON.parse(raw) : defaultDB();
-  } catch { return defaultDB(); }
+    if (raw && raw.trim()) {
+      const parsed = JSON.parse(raw);
+      // Verifica se tem dados reais (não está vazio)
+      const temDados = parsed.agendamentos?.length || parsed.clientes?.length || parsed.servicos?.length;
+      if (temDados) return parsed;
+    }
+  } catch(e) {}
+
+  // Tenta o backup se o principal estiver vazio ou corrompido
+  try {
+    const bakExists = await fs.pathExists(DATA_FILE + '.bak');
+    if (bakExists) {
+      const raw = await fs.readFile(DATA_FILE + '.bak', 'utf8');
+      if (raw && raw.trim()) {
+        console.log('[DB] Restaurando dados do backup...');
+        const parsed = JSON.parse(raw);
+        await fs.writeFile(DATA_FILE, JSON.stringify(parsed, null, 2));
+        return parsed;
+      }
+    }
+  } catch(e) {}
+
+  return defaultDB();
 }
 
 async function writeDB(data) {
   await fs.ensureDir(path.dirname(DATA_FILE));
-  await fs.writeFile(DATA_FILE, JSON.stringify(data, null, 2));
+  // Backup antes de sobrescrever
+  try {
+    const exists = await fs.pathExists(DATA_FILE);
+    if (exists) {
+      await fs.copy(DATA_FILE, DATA_FILE + '.bak', { overwrite: true });
+    }
+  } catch(e) {}
+  // Salva com caracteres UTF-8 reais (não escapa acentos)
+  const json = JSON.stringify(data, null, 2)
+    .replace(/\\u([0-9a-fA-F]{4})/g, (_, code) =>
+      String.fromCharCode(parseInt(code, 16))
+    );
+  await fs.writeFile(DATA_FILE, json, 'utf8');
 }
 
 function defaultDB() {
@@ -580,10 +623,13 @@ app.post('/api/webhook', async (req, res) => {
 app.get('/api/agendamentos', async (req, res) => {
   const db = await readDB();
   res.json({
-    ok: true,
-    agendamentos: db.agendamentos,
-    wppMensagens: db.wppMensagens || [],
-    timestamp: new Date().toISOString()
+    ok:           true,
+    agendamentos: db.agendamentos  || [],
+    clientes:     db.clientes      || [],
+    servicos:     db.servicos      || [],
+    financeiro:   db.financeiro    || [],
+    wppMensagens: db.wppMensagens  || [],
+    timestamp:    new Date().toISOString()
   });
 });
 
@@ -592,11 +638,23 @@ app.post('/api/agendamentos', async (req, res) => {
   try {
     const db = await readDB();
     const { agendamentos, clientes, servicos, financeiro, wppMensagens } = req.body;
-    if (agendamentos) db.agendamentos = agendamentos;
-    if (clientes)     db.clientes     = clientes;
-    if (servicos)     db.servicos     = servicos;
-    if (financeiro)   db.financeiro   = financeiro;
-    if (wppMensagens) db.wppMensagens = wppMensagens;
+
+    // Proteção simples: só bloqueia se vier array VAZIO tentando sobrescrever dados existentes
+    // Permite exclusões normais (19->18, 8->7, etc) — só bloqueia 0 sobrescrevendo N
+    const safe = (novo, atual) => {
+      if ((novo?.length || 0) === 0 && (atual?.length || 0) > 0) {
+        console.log(`[DB] Bloqueado: array vazio nao pode sobrescrever ${atual.length} registros`);
+        return atual; // protege contra sync vazio do Cloudflare
+      }
+      return novo !== undefined ? novo : atual;
+    };
+
+    db.agendamentos = safe(agendamentos, db.agendamentos);
+    db.clientes     = safe(clientes,     db.clientes);
+    db.servicos     = safe(servicos,     db.servicos);
+    db.financeiro   = safe(financeiro,   db.financeiro);
+    if (wppMensagens !== undefined) db.wppMensagens = wppMensagens;
+
     await writeDB(db);
     res.json({ ok: true });
   } catch (e) {

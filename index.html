@@ -6,11 +6,39 @@
   <title>Studio Shelly Rodrigues — Sistema de Gestão</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
   <style>
 /* Fonts embedded below via @font-face */
 
 :root {
+  /* Paleta inspirada no template Wix Salão de Beleza */
+  --gold: #B8916A;           /* rosé-dourado quente */
+  --gold-light: #D4A882;     /* rosé claro */
+  --gold-dark: #8B6A4A;      /* marrom âmbar */
+  --gold-glow: rgba(184, 145, 106, 0.12);
+  --bg: #FAF8F5;             /* creme muito claro */
+  --bg-card: #FFFFFF;        /* branco puro */
+  --bg-card2: #F5F1EB;       /* bege suave */
+  --bg-input: #F0EBE3;       /* bege input */
+  --border: rgba(184, 145, 106, 0.25);
+  --border-soft: rgba(184, 145, 106, 0.1);
+  --text: #2C2016;           /* marrom escuro quase preto */
+  --text-muted: rgba(44, 32, 22, 0.45);
+  --text-soft: rgba(44, 32, 22, 0.7);
+  --green: #5A8A6A;          /* verde sálvia */
+  --red: #B85C5C;            /* vermelho suave */
+  --blue: #5C7AB8;           /* azul acinzentado */
+  --purple: #8A6AAA;         /* lavanda */
+  --orange: #C4855A;         /* terracota */
+  --sidebar-w: 260px;
+  --radius: 14px;
+  --radius-sm: 8px;
+  --shadow: 0 4px 24px rgba(44, 32, 22, 0.08);
+  --shadow-gold: 0 0 24px rgba(184, 145, 106, 0.18);
+}
+
+/* ─── TEMA ESCURO ─── */
+[data-theme="dark"] {
   --gold: #C9A84C;
   --gold-light: #E8C96A;
   --gold-dark: #9A7A2E;
@@ -29,20 +57,66 @@
   --blue: #5C8FE0;
   --purple: #A05CE0;
   --orange: #E09A5C;
-  --sidebar-w: 260px;
-  --radius: 14px;
-  --radius-sm: 8px;
   --shadow: 0 8px 32px rgba(0,0,0,0.4);
   --shadow-gold: 0 0 24px rgba(201, 168, 76, 0.2);
 }
+
+[data-theme="dark"] .sidebar { background: var(--bg-card); }
+[data-theme="dark"] body { background-image: none; }
+[data-theme="dark"] .topbar { background: rgba(20,20,24,0.92); }
+[data-theme="dark"] tbody tr:hover { background: rgba(255,255,255,0.02); }
+[data-theme="dark"] ::-webkit-scrollbar-track { background: var(--bg); }
+[data-theme="dark"] ::-webkit-scrollbar-thumb { background: var(--gold-dark); }
+
+/* ─── TOGGLE DE TEMA ─── */
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-card2);
+  border: 1px solid var(--border-soft);
+  border-radius: 99px;
+  padding: 5px 14px 5px 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-soft);
+  user-select: none;
+  white-space: nowrap;
+}
+.theme-toggle:hover {
+  border-color: var(--gold);
+  color: var(--text);
+}
+.theme-toggle-track {
+  width: 34px; height: 18px;
+  background: var(--bg-input);
+  border-radius: 99px;
+  position: relative;
+  transition: background 0.3s;
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.theme-toggle-thumb {
+  width: 12px; height: 12px;
+  background: var(--gold);
+  border-radius: 50%;
+  position: absolute;
+  top: 2px; left: 2px;
+  transition: transform 0.3s, background 0.3s;
+}
+[data-theme="dark"] .theme-toggle-track { background: var(--gold-glow); }
+[data-theme="dark"] .theme-toggle-thumb { transform: translateX(16px); background: var(--gold-light); }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 html { scroll-behavior: smooth; }
 
 body {
-  font-family: 'DM Sans', 'Segoe UI', system-ui, sans-serif;
+  font-family: 'Jost', 'Segoe UI', system-ui, sans-serif;
   background: var(--bg);
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23B8916A' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
   color: var(--text);
   min-height: 100vh;
   display: flex;
@@ -51,14 +125,14 @@ body {
 
 /* Scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: var(--bg); }
-::-webkit-scrollbar-thumb { background: var(--gold-dark); border-radius: 99px; }
+::-webkit-scrollbar-track { background: var(--bg-card2); }
+::-webkit-scrollbar-thumb { background: var(--gold-light); border-radius: 99px; }
 
 /* ─── SIDEBAR ─── */
 .sidebar {
   width: var(--sidebar-w);
   min-height: 100vh;
-  background: var(--bg-card);
+  background: #F0EBE3;
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
@@ -84,7 +158,7 @@ body {
 }
 
 .sidebar-logo h2 {
-  font-family: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  font-family: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
   font-size: 15px;
   font-weight: 600;
   color: var(--gold-light);
@@ -164,7 +238,7 @@ body {
 }
 
 .sidebar-time .time { 
-  font-family: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  font-family: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
   font-size: 22px;
   color: var(--gold);
   display: block;
@@ -182,7 +256,7 @@ body {
 
 .topbar {
   height: 64px;
-  background: var(--bg-card);
+  background: rgba(255,255,255,0.92);
   border-bottom: 1px solid var(--border-soft);
   display: flex;
   align-items: center;
@@ -195,7 +269,7 @@ body {
 }
 
 .topbar-title h1 {
-  font-family: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  font-family: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
   font-size: 20px;
   font-weight: 600;
   color: var(--text);
@@ -242,7 +316,7 @@ body {
 }
 
 .card-title {
-  font-family: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  font-family: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
   font-size: 16px;
   font-weight: 600;
   color: var(--text);
@@ -274,7 +348,7 @@ body {
 
 .kpi-card:hover {
   transform: translateY(-2px);
-  border-color: var(--border);
+  border-color: var(--gold-light);
 }
 
 .kpi-card::after {
@@ -298,7 +372,7 @@ body {
 }
 
 .kpi-value {
-  font-family: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  font-family: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
   font-size: 26px;
   font-weight: 700;
   color: var(--text);
@@ -362,7 +436,7 @@ tbody tr {
   transition: background 0.15s;
 }
 
-tbody tr:hover { background: rgba(255,255,255,0.02); }
+tbody tr:hover { background: rgba(184,145,106,0.05); }
 
 tbody td {
   padding: 12px 14px;
@@ -399,7 +473,7 @@ tbody td strong { color: var(--text); font-weight: 500; }
   gap: 7px;
   padding: 9px 18px;
   border-radius: var(--radius-sm);
-  font-family: 'DM Sans', 'Segoe UI', system-ui, sans-serif;
+  font-family: 'Jost', 'Segoe UI', system-ui, sans-serif;
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
@@ -412,12 +486,12 @@ tbody td strong { color: var(--text); font-weight: 500; }
 .btn-primary {
   background: linear-gradient(135deg, var(--gold-dark), var(--gold));
   color: var(--bg);
-  box-shadow: 0 2px 12px rgba(201,168,76,0.3);
+  box-shadow: 0 2px 12px rgba(184,145,106,0.25);
 }
 
 .btn-primary:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 20px rgba(201,168,76,0.4);
+  box-shadow: 0 4px 20px rgba(184,145,106,0.35);
 }
 
 .btn-outline {
@@ -464,7 +538,7 @@ tbody td strong { color: var(--text); font-weight: 500; }
   border: 1px solid var(--border-soft);
   border-radius: var(--radius-sm);
   padding: 10px 14px;
-  font-family: 'DM Sans', 'Segoe UI', system-ui, sans-serif;
+  font-family: 'Jost', 'Segoe UI', system-ui, sans-serif;
   font-size: 14px;
   color: var(--text);
   outline: none;
@@ -488,7 +562,7 @@ option { background: var(--bg-card2); color: var(--text); }
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.7);
+  background: rgba(44,32,22,0.45);
   backdrop-filter: blur(4px);
   z-index: 1000;
   display: flex;
@@ -529,7 +603,7 @@ option { background: var(--bg-card2); color: var(--text); }
 }
 
 .modal-title {
-  font-family: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  font-family: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
   font-size: 20px;
   font-weight: 600;
 }
@@ -586,7 +660,7 @@ option { background: var(--bg-card2); color: var(--text); }
 }
 
 .agenda-header-cell .day-num {
-  font-family: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  font-family: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
   font-size: 22px;
   color: var(--text);
   line-height: 1.2;
@@ -655,7 +729,7 @@ option { background: var(--bg-card2); color: var(--text); }
 
 .service-card:hover {
   transform: translateY(-3px);
-  border-color: var(--border);
+  border-color: var(--gold-light);
   box-shadow: var(--shadow);
 }
 
@@ -683,7 +757,7 @@ option { background: var(--bg-card2); color: var(--text); }
 }
 
 .service-name {
-  font-family: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  font-family: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
   font-size: 17px;
   font-weight: 600;
   margin-bottom: 12px;
@@ -712,7 +786,7 @@ option { background: var(--bg-card2); color: var(--text); }
 }
 
 .service-stat-value {
-  font-family: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  font-family: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
   font-size: 16px;
   font-weight: 600;
   color: var(--text);
@@ -862,7 +936,7 @@ option { background: var(--bg-card2); color: var(--text); }
 }
 
 .agenda-nav .week-title {
-  font-family: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  font-family: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
   font-size: 18px;
   font-weight: 600;
   min-width: 220px;
@@ -885,7 +959,7 @@ option { background: var(--bg-card2); color: var(--text); }
 }
 
 .stat-box .stat-val {
-  font-family: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  font-family: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
   font-size: 24px;
   font-weight: 700;
   color: var(--text);
@@ -954,7 +1028,7 @@ option { background: var(--bg-card2); color: var(--text); }
 .text-muted { color: var(--text-muted); }
 .text-green { color: var(--green); }
 .text-red { color: var(--red); }
-.font-serif { font-family: 'Playfair Display', Georgia, 'Times New Roman', serif; }
+.font-serif { font-family: 'Cormorant Garamond', Georgia, 'Times New Roman', serif; }
 .text-sm { font-size: 13px; }
 .text-xs { font-size: 11px; }
 .fw-500 { font-weight: 500; }
@@ -967,7 +1041,7 @@ option { background: var(--bg-card2); color: var(--text); }
   border: none; outline: none; transition: all 0.2s;
   background: linear-gradient(135deg, #1a6e31, #25D366);
   color: #fff; box-shadow: 0 2px 10px rgba(37,211,102,0.25);
-  white-space: nowrap; font-family: 'DM Sans','Segoe UI',system-ui,sans-serif;
+  white-space: nowrap; font-family: 'Jost','Segoe UI',system-ui,sans-serif;
 }
 .wpp-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 18px rgba(37,211,102,0.35); }
 .wpp-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
@@ -1103,6 +1177,10 @@ option { background: var(--bg-card2); color: var(--text); }
     </div>
     <div class="topbar-actions">
       <div class="topbar-date" id="topbar-date">Carregando...</div>
+      <div class="theme-toggle" onclick="toggleTheme()" title="Alternar tema claro/escuro">
+        <div class="theme-toggle-track"><div class="theme-toggle-thumb"></div></div>
+        <span id="theme-label">Escuro</span>
+      </div>
     </div>
   </div>
 
@@ -1213,27 +1291,28 @@ function seedData() {
 }
 
 function loadData() {
-  State.data.clientes = Storage.load('clientes') || [];
-  State.data.servicos = Storage.load('servicos') || [];
-  State.data.financeiro = Storage.load('financeiro') || [];
+  State.data.clientes     = Storage.load('clientes')     || [];
+  State.data.servicos     = Storage.load('servicos')     || [];
+  State.data.financeiro   = Storage.load('financeiro')   || [];
   State.data.agendamentos = Storage.load('agendamentos') || [];
   State.data.wppMensagens = Storage.load('wppMensagens') || [];
-
-  if (!State.data.clientes.length) {
-    const seed = seedData();
-    State.data = seed;
-    State.data.wppMensagens = [];
-    saveAll();
-  }
+  // Não carrega seedData aqui — será carregado só se backend também estiver vazio
 }
 
+// Flag: bloqueia sync com backend durante carregamento inicial
+// Evita que localStorage vazio sobrescreva db.json ao abrir pelo Cloudflare
+let _appReady = false;
+
 function saveAll() {
-  Storage.save('clientes', State.data.clientes);
-  Storage.save('servicos', State.data.servicos);
-  Storage.save('financeiro', State.data.financeiro);
+  Storage.save('clientes',     State.data.clientes);
+  Storage.save('servicos',     State.data.servicos);
+  Storage.save('financeiro',   State.data.financeiro);
   Storage.save('agendamentos', State.data.agendamentos);
   Storage.save('wppMensagens', State.data.wppMensagens || []);
-  // Async sync to backend (fire & forget)
+
+  // Só sincroniza com backend após app estar pronto (dados carregados do backend)
+  if (!_appReady) return;
+
   if (typeof BackendAPI !== 'undefined') {
     BackendAPI.post('/api/agendamentos', {
       agendamentos: State.data.agendamentos,
@@ -1346,6 +1425,23 @@ function getMonthName(n) {
 }
 
 // Clock
+// ─── TEMA ─────────────────────────────────────────────────────────────────────
+function toggleTheme() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const newTheme = isDark ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', newTheme);
+  document.getElementById('theme-label').textContent = isDark ? 'Escuro' : 'Claro';
+  try { localStorage.setItem('shelly_theme', newTheme); } catch(e) {}
+}
+
+function initTheme() {
+  let saved = 'light';
+  try { saved = localStorage.getItem('shelly_theme') || 'light'; } catch(e) {}
+  document.documentElement.setAttribute('data-theme', saved);
+  const label = document.getElementById('theme-label');
+  if (label) label.textContent = saved === 'dark' ? 'Claro' : 'Escuro';
+}
+
 function updateClock() {
   const el = document.getElementById('sidebar-clock');
   if (!el) return;
@@ -1354,27 +1450,75 @@ function updateClock() {
 }
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
-window.addEventListener('DOMContentLoaded', () => {
-  loadData();
+window.addEventListener('DOMContentLoaded', async () => {
+  initTheme();
+  loadData(); // carrega localStorage primeiro (resposta imediata)
   updateClock();
   setInterval(updateClock, 1000);
-  
+
   const now = new Date();
   document.getElementById('topbar-date').textContent =
     now.toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-  
+
   document.querySelectorAll('.nav-item[data-page]').forEach(el => {
     el.addEventListener('click', () => navigate(el.dataset.page));
   });
 
+  // Mostra loading enquanto busca dados do backend
+  document.getElementById('page-content').innerHTML =
+    '<div style="display:flex;align-items:center;justify-content:center;height:60vh;flex-direction:column;gap:16px;">' +
+    '<div style="font-size:32px;">🌸</div>' +
+    '<div style="font-family:var(--font-serif,serif);font-size:18px;color:var(--text-muted);">Carregando dados...</div>' +
+    '</div>';
+
+  // Busca dados do backend ANTES de renderizar
+  try {
+    const data = await BackendAPI.get('/api/agendamentos');
+    if (data?.ok) {
+      const backendTemDados = (data.agendamentos?.length || data.clientes?.length || data.servicos?.length);
+
+      if (backendTemDados) {
+        // Backend tem dados — usa como fonte principal
+        State.data.agendamentos = data.agendamentos || State.data.agendamentos;
+        State.data.wppMensagens = data.wppMensagens || State.data.wppMensagens || [];
+        // clientes/servicos/financeiro também vêm do backend se disponíveis
+        if (data.clientes?.length)   State.data.clientes   = data.clientes;
+        if (data.servicos?.length)   State.data.servicos   = data.servicos;
+        if (data.financeiro?.length) State.data.financeiro = data.financeiro;
+        // Salva no localStorage local para próximas visitas offline
+        Storage.save('clientes',     State.data.clientes);
+        Storage.save('servicos',     State.data.servicos);
+        Storage.save('financeiro',   State.data.financeiro);
+        Storage.save('agendamentos', State.data.agendamentos);
+        Storage.save('wppMensagens', State.data.wppMensagens);
+      } else if (!State.data.clientes.length) {
+        // Backend E localStorage vazios — carrega dados de exemplo
+        const seed = seedData();
+        State.data = seed;
+        State.data.wppMensagens = [];
+        saveAll();
+      }
+      // Se localStorage tem dados mas backend está vazio — saveAll já envia para backend
+      else if (State.data.clientes.length) {
+        saveAll();
+      }
+    }
+  } catch(e) {
+    // Backend offline — usa localStorage normalmente
+    if (!State.data.clientes.length) {
+      const seed = seedData();
+      State.data = seed;
+      State.data.wppMensagens = [];
+      saveAll();
+    }
+  }
+
+  // Marca app como pronto — a partir daqui saveAll sincroniza com backend
+  _appReady = true;
+
   navigate('dashboard');
-  // Init wpp badge + start backend polling
-  setTimeout(() => {
-    updateWppBadge();
-    if (typeof startPolling !== 'undefined') startPolling();
-    // Initial sync from backend
-    if (typeof syncFromBackend !== 'undefined') syncFromBackend().then(updateWppBadge);
-  }, 400);
+  updateWppBadge();
+  if (typeof startPolling !== 'undefined') startPolling();
 });
 
 
@@ -1547,7 +1691,7 @@ function drawRevenueChart(data) {
     ctx.lineTo(pad.left + cW, y);
     ctx.stroke();
     ctx.fillStyle = 'rgba(240,237,230,0.35)';
-    ctx.font = '10px DM Sans';
+    ctx.font = '10px Jost';
     ctx.textAlign = 'right';
     ctx.fillText('R$' + Math.round(maxV * (1 - i/4) / 1000) + 'k', pad.left - 8, y + 4);
   }
@@ -1577,7 +1721,7 @@ function drawRevenueChart(data) {
 
     // Label
     ctx.fillStyle = 'rgba(240,237,230,0.5)';
-    ctx.font = '11px DM Sans';
+    ctx.font = '11px Jost';
     ctx.textAlign = 'center';
     ctx.fillText(d.label, x + barW, H - 12);
   });
@@ -1586,7 +1730,7 @@ function drawRevenueChart(data) {
   ctx.fillStyle = 'rgba(201,168,76,0.9)';
   ctx.fillRect(W - 120, 10, 12, 10);
   ctx.fillStyle = 'rgba(240,237,230,0.6)';
-  ctx.font = '11px DM Sans';
+  ctx.font = '11px Jost';
   ctx.textAlign = 'left';
   ctx.fillText('Receita', W - 104, 19);
   ctx.fillStyle = 'rgba(224,92,92,0.7)';
@@ -1893,19 +2037,9 @@ function openSvcModal(editId = null) {
         </select>
       </div>
     </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label">Custo (R$) *</label>
-        <input class="form-control" id="svc-custo" type="number" step="0.01" min="0" value="${item?.custo || ''}">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Preço de Venda (R$) *</label>
-        <input class="form-control" id="svc-preco" type="number" step="0.01" min="0" value="${item?.preco || ''}">
-      </div>
-    </div>
     <div class="form-group">
-      <label class="form-label">Duração (minutos) *</label>
-      <input class="form-control" id="svc-dur" type="number" min="5" step="5" placeholder="60" value="${item?.duracao || ''}">
+      <label class="form-label">Preço de Venda (R$) *</label>
+      <input class="form-control" id="svc-preco" type="number" step="0.01" min="0" value="${item?.preco || ''}">
     </div>
   `, `
     <button class="btn btn-ghost" onclick="closeModal('modal-svc')">Cancelar</button>
@@ -1919,20 +2053,18 @@ function saveSvc(editId) {
   const nome = document.getElementById('svc-nome').value.trim();
   const categoria = document.getElementById('svc-cat').value;
   const emoji = document.getElementById('svc-emoji').value;
-  const custo = parseFloat(document.getElementById('svc-custo').value);
   const preco = parseFloat(document.getElementById('svc-preco').value);
-  const duracao = parseInt(document.getElementById('svc-dur').value);
 
-  if (!nome || isNaN(custo) || isNaN(preco) || isNaN(duracao)) {
+  if (!nome || isNaN(preco)) {
     toast('Preencha todos os campos obrigatórios', 'error'); return;
   }
 
   if (editId) {
     const i = State.data.servicos.findIndex(s => s.id === editId);
-    if (i >= 0) Object.assign(State.data.servicos[i], { nome, categoria, emoji, custo, preco, duracao });
+    if (i >= 0) Object.assign(State.data.servicos[i], { nome, categoria, emoji, preco });
     toast('Serviço atualizado', 'success');
   } else {
-    State.data.servicos.push({ id: nextId(State.data.servicos), nome, categoria, emoji, custo, preco, duracao });
+    State.data.servicos.push({ id: nextId(State.data.servicos), nome, categoria, emoji, preco, custo: 0, duracao: 60 });
     toast('Serviço adicionado', 'success');
   }
 
@@ -2942,10 +3074,27 @@ async function enviarWhatsAppBackend(agId) {
 
 async function syncFromBackend() {
   const data = await BackendAPI.get('/api/agendamentos');
-  if (data?.ok) {
-    State.data.agendamentos  = data.agendamentos  || State.data.agendamentos;
-    State.data.wppMensagens  = data.wppMensagens  || State.data.wppMensagens || [];
+  if (!data?.ok) return;
+
+  const backendTemDados = data.agendamentos?.length || data.clientes?.length;
+
+  if (backendTemDados) {
+    if (data.agendamentos?.length) State.data.agendamentos = data.agendamentos;
+    if (data.clientes?.length)     State.data.clientes     = data.clientes;
+    if (data.servicos?.length)     State.data.servicos     = data.servicos;
+    if (data.financeiro?.length)   State.data.financeiro   = data.financeiro;
+    if (data.wppMensagens?.length >= (State.data.wppMensagens||[]).length)
+      State.data.wppMensagens = data.wppMensagens;
     saveAll();
+  } else if (State.data.clientes.length) {
+    // Backend vazio — restaura do localStorage
+    BackendAPI.post('/api/agendamentos', {
+      agendamentos: State.data.agendamentos,
+      clientes:     State.data.clientes,
+      servicos:     State.data.servicos,
+      financeiro:   State.data.financeiro,
+      wppMensagens: State.data.wppMensagens || []
+    }).catch(() => {});
   }
 }
 
