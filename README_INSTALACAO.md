@@ -247,3 +247,31 @@ cd /home/laerte/Downloads/sistema_salao/
 Comando para executar o cloudflare via docker cmd cli
 
 docker run --rm -it   --network host   cloudflare/cloudflared:latest   tunnel --url http://localhost:3000
+
+#########GIT COMANDOS###################
+
+##CRIAR PROJETO NO GIT HUB - CLI
+git pull
+git add .
+git commit -m "feat: nova melhoria"
+git push
+
+
+##Atualizar projeto do git - comandos 
+Esta na pasta do projeto e executar os seguintes comandos 
+
+git add .
+git commit -m "feat: atualiza backend e ajustes na interface"
+git push
+
+Comandos para adicionar projeto no git hub
+
+###Para baixar um projeto do GitHub para sua máquina via console, usamos o comando:
+
+git clone https://github.com/usuario/projeto.git
+
+⭐ MODO PROFISSIONAL (SSH — recomendado)
+
+Se você já configurou SSH, use:
+
+git clone git@github.com:usuario/projeto.git

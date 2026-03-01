@@ -13,136 +13,18 @@
       "obs": ""
     },
     {
-      "id": 9,
+      "id": 20,
       "data": "2026-03-02",
-      "hora": "09:00",
-      "clienteId": 2,
-      "clienteNome": "Carla Mendes Silva",
-      "servicoId": 12,
-      "servicoNome": "Limpeza de Pele",
-      "valor": 120,
-      "status": "pendente",
-      "obs": ""
-    },
-    {
-      "id": 10,
-      "data": "2026-03-03",
       "hora": "08:00",
-      "clienteId": 7,
-      "clienteNome": "Renata Alves",
-      "servicoId": 14,
-      "servicoNome": "Maquiagem Noiva",
-      "valor": 350,
-      "status": "confirmado",
-      "obs": ""
-    },
-    {
-      "id": 11,
-      "data": "2026-03-03",
-      "hora": "09:00",
-      "clienteId": 6,
-      "clienteNome": "Patricia Lima",
-      "servicoId": 12,
-      "servicoNome": "Limpeza de Pele",
-      "valor": 120,
-      "status": "confirmado",
-      "obs": ""
-    },
-    {
-      "id": 12,
-      "data": "2026-03-04",
-      "hora": "08:00",
-      "clienteId": 7,
-      "clienteNome": "Renata Alves",
-      "servicoId": 5,
-      "servicoNome": "Hidratação Profunda",
-      "valor": 90,
-      "status": "pendente",
-      "obs": ""
-    },
-    {
-      "id": 13,
-      "data": "2026-03-04",
-      "hora": "09:00",
-      "clienteId": 2,
-      "clienteNome": "Carla Mendes Silva",
-      "servicoId": 9,
-      "servicoNome": "Depilação Perna Completa",
+      "clienteId": 9,
+      "clienteNome": "laerte",
+      "servicoId": 1,
+      "servicoNome": "Corte Feminino",
       "valor": 65,
       "status": "confirmado",
-      "obs": ""
-    },
-    {
-      "id": 14,
-      "data": "2026-03-04",
-      "hora": "11:00",
-      "clienteId": 2,
-      "clienteNome": "Carla Mendes Silva",
-      "servicoId": 8,
-      "servicoNome": "Esmaltação em Gel",
-      "valor": 80,
-      "status": "confirmado",
-      "obs": ""
-    },
-    {
-      "id": 15,
-      "data": "2026-03-05",
-      "hora": "08:00",
-      "clienteId": 2,
-      "clienteNome": "Carla Mendes Silva",
-      "servicoId": 6,
-      "servicoNome": "Manicure",
-      "valor": 45,
-      "status": "confirmado",
-      "obs": ""
-    },
-    {
-      "id": 16,
-      "data": "2026-03-05",
-      "hora": "09:00",
-      "clienteId": 4,
-      "clienteNome": "Julia Santos Oliveira",
-      "servicoId": 8,
-      "servicoNome": "Esmaltação em Gel",
-      "valor": 80,
-      "status": "cancelado",
-      "obs": ""
-    },
-    {
-      "id": 17,
-      "data": "2026-03-05",
-      "hora": "11:00",
-      "clienteId": 5,
-      "clienteNome": "Mariana Rodrigues",
-      "servicoId": 7,
-      "servicoNome": "Pedicure",
-      "valor": 55,
-      "status": "confirmado",
-      "obs": ""
-    },
-    {
-      "id": 18,
-      "data": "2026-03-06",
-      "hora": "08:00",
-      "clienteId": 8,
-      "clienteNome": "Simone Borges",
-      "servicoId": 12,
-      "servicoNome": "Limpeza de Pele",
-      "valor": 120,
-      "status": "cancelado",
-      "obs": ""
-    },
-    {
-      "id": 19,
-      "data": "2026-03-06",
-      "hora": "09:00",
-      "clienteId": 7,
-      "clienteNome": "Renata Alves",
-      "servicoId": 7,
-      "servicoNome": "Pedicure",
-      "valor": 55,
-      "status": "confirmado",
-      "obs": ""
+      "obs": "",
+      "wppEnviado": true,
+      "wppEnviadoEm": "2026-03-01T01:53:57.623Z"
     }
   ],
   "clientes": [
@@ -233,7 +115,7 @@
       "email": "",
       "aniversario": "",
       "obs": "",
-      "atendimentos": 0,
+      "atendimentos": 1,
       "createdAt": "2026-02-28"
     }
   ],
@@ -520,5 +402,23 @@
       "createdAt": "2025-09-30"
     }
   ],
-  "wppMensagens": []
+  "wppMensagens": [
+    {
+      "id": 1,
+      "agId": 20,
+      "clienteId": 9,
+      "clienteNome": "laerte",
+      "clienteTel": "62982259851",
+      "phoneWpp": "5562982259851",
+      "servico": "Corte Feminino",
+      "data": "2026-03-02",
+      "hora": "08:00",
+      "enviadoEm": "2026-03-01T01:53:57.623Z",
+      "enviadoEmSec": "1772330037",
+      "resposta": "sim",
+      "respostaEm": "2026-03-01T01:54:13.717Z",
+      "lida": false,
+      "evolutionMsgId": "3EB05394EEAACA0DB1B6F1"
+    }
+  ]
 }
