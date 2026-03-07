@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Studio Shelly Rodrigues — Sistema de Gestão</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1148,6 +1148,104 @@ option { background: var(--bg-card2); color: var(--text); }
 }
 .btn-menu:active { background: var(--gold-glow); }
 
+/* ─── AGENDA MOBILE — LISTA DIÁRIA ──────────────────────────────────────── */
+.agenda-day-list { display: flex; flex-direction: column; gap: 8px; }
+.agenda-day-item {
+  background: var(--bg-card);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.agenda-day-header {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px;
+  background: var(--bg-card2);
+  border-bottom: 1px solid var(--border-soft);
+  cursor: pointer;
+}
+.agenda-day-num {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 28px; font-weight: 600; line-height: 1;
+  color: var(--text); min-width: 36px; text-align: center;
+}
+.agenda-day-num.today { color: var(--gold); }
+.agenda-day-info { flex: 1; }
+.agenda-day-name {
+  font-size: 13px; font-weight: 600; color: var(--text);
+  text-transform: capitalize;
+}
+.agenda-day-count {
+  font-size: 11px; color: var(--text-muted); margin-top: 1px;
+}
+.agenda-day-events { padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+.agenda-day-empty { padding: 12px 16px; font-size: 13px; color: var(--text-muted); text-align: center; }
+.agenda-list-event {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--bg-card2);
+  border-left: 3px solid var(--gold);
+  cursor: pointer;
+  transition: opacity 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.agenda-list-event:active { opacity: 0.7; }
+.agenda-list-event.ev-confirmado { border-left-color: var(--green); background: rgba(76,175,130,0.08); }
+.agenda-list-event.ev-cancelado  { border-left-color: var(--red);   background: rgba(224,92,92,0.06); }
+.agenda-list-event.ev-aguardando { border-left-color: #25D366;      background: rgba(37,211,102,0.06); }
+.agenda-list-event .ev-hora {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 18px; font-weight: 600; color: var(--gold);
+  min-width: 48px; text-align: center; line-height: 1;
+}
+.agenda-list-event.ev-confirmado .ev-hora { color: var(--green); }
+.agenda-list-event.ev-cancelado  .ev-hora { color: var(--red); }
+.agenda-list-event .ev-info { flex: 1; min-width: 0; }
+.agenda-list-event .ev-nome {
+  font-size: 14px; font-weight: 600; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.agenda-list-event .ev-svc {
+  font-size: 12px; color: var(--text-muted); margin-top: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.agenda-add-btn {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 12px; margin: 8px 12px;
+  border: 1.5px dashed var(--border);
+  border-radius: 10px;
+  color: var(--text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.agenda-add-btn:active { background: var(--gold-glow); color: var(--gold); }
+
+/* Agenda nav mobile */
+@media (max-width: 768px) {
+  .agenda-nav {
+    display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+    margin-bottom: 14px;
+  }
+  .agenda-nav .week-title {
+    font-size: 14px; flex: 1; text-align: center; min-width: 120px;
+  }
+  .topbar-title h1 {
+    font-size: 15px !important;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    max-width: 160px;
+  }
+  .kpi-card .kpi-value { font-size: 18px; }
+  .kpi-card .kpi-label { font-size: 11px; }
+  .kpi-card .kpi-icon  { width: 32px; height: 32px; font-size: 15px; margin-bottom: 10px; }
+  .services-grid { grid-template-columns: 1fr; }
+  .form-row { grid-template-columns: 1fr !important; }
+  .modal-footer { flex-wrap: wrap; gap: 8px; }
+  .modal-footer .btn { flex: 1; justify-content: center; }
+  .card-header { flex-wrap: wrap; gap: 8px; }
+}
+
 /* ─── ANIMATIONS ─── */
 .page-section {
   animation: fadeUp 0.35s ease both;
@@ -1744,6 +1842,11 @@ window.addEventListener('DOMContentLoaded', async () => {
   navigate('dashboard');
   updateWppBadge();
   if (typeof startPolling !== 'undefined') startPolling();
+
+  // Rerenderiza agenda ao rotacionar tela
+  window.addEventListener('resize', () => {
+    if (State.currentPage === 'agenda') renderAgendaGrid();
+  });
 });
 
 
@@ -2432,29 +2535,27 @@ function getPendentesWpp() {
 }
 
 // ─── Agenda Render ────────────────────────────────────────────────────────────
+function isMobile() { return window.innerWidth <= 768; }
+
 function renderAgenda(container) {
   container.innerHTML = `
     <div class="page-section">
       <div class="agenda-nav">
-        <button class="btn btn-ghost btn-sm" onclick="agendaNav(-1)">← Anterior</button>
+        <button class="btn btn-ghost btn-sm" onclick="agendaNav(-1)">← Ant</button>
         <div class="week-title" id="agenda-week-title">...</div>
-        <button class="btn btn-ghost btn-sm" onclick="agendaNav(1)">Próxima →</button>
+        <button class="btn btn-ghost btn-sm" onclick="agendaNav(1)">Próx →</button>
         <button class="btn btn-outline btn-sm" onclick="agendaWeekOffset=0;renderAgendaGrid()">Hoje</button>
-        <button class="btn btn-primary btn-sm" style="margin-left:auto;" onclick="openAgModal()">+ Agendar</button>
+        <button class="btn btn-primary btn-sm" style="margin-left:auto;" onclick="openAgModal()">+ Novo</button>
       </div>
-      <div class="card" style="padding:0;overflow:hidden;">
-        <div class="agenda-wrap" id="agenda-grid-wrap"></div>
-      </div>
+      <div id="agenda-grid-wrap"></div>
 
       <div class="grid-2 mt-20">
         <div class="card">
-          <div class="card-header">
-            <div class="card-title">Legenda</div>
-          </div>
+          <div class="card-header"><div class="card-title">Legenda</div></div>
           <div class="flex gap-12" style="flex-wrap:wrap;">
             <span class="badge badge-green">✓ Confirmado</span>
             <span class="badge badge-gold">⏳ Pendente</span>
-            <span class="badge badge-wpp">📱 Aguardando WhatsApp</span>
+            <span class="badge badge-wpp">📱 WhatsApp</span>
             <span class="badge badge-red">✕ Cancelado</span>
           </div>
         </div>
@@ -2462,12 +2563,12 @@ function renderAgenda(container) {
           <div class="card-header">
             <div>
               <div class="card-title" style="display:flex;align-items:center;gap:8px;">
-                <span>📱 Caixa de Confirmações</span>
+                <span>📱 Confirmações</span>
                 <span id="inbox-badge" style="display:none;" class="nav-badge">0</span>
               </div>
               <div class="card-subtitle">Respostas via WhatsApp</div>
             </div>
-            <button class="btn btn-ghost btn-sm" onclick="renderWppInboxCard()">↻ Atualizar</button>
+            <button class="btn btn-ghost btn-sm" onclick="renderWppInboxCard()">↻</button>
           </div>
           <div id="wpp-inbox-inner"></div>
         </div>
@@ -2556,6 +2657,69 @@ function updateInboxBadge() {
   if (badge) { badge.textContent = pending; badge.style.display = pending > 0 ? 'flex' : 'none'; }
 }
 
+function renderAgendaMobileList() {
+  const days  = getWeekDays(agendaWeekOffset);
+  const wrap  = document.getElementById('agenda-grid-wrap');
+  if (!wrap) return;
+
+  // Título da semana
+  const d0 = days[0], d6 = days[6];
+  document.getElementById('agenda-week-title').textContent =
+    `${d0.getDate()}/${d0.getMonth()+1} – ${d6.getDate()}/${d6.getMonth()+1}`;
+
+  const today_str = today();
+  let html = '<div class="agenda-day-list">';
+
+  days.forEach(day => {
+    const dtStr   = localDateStr(day);
+    const isToday = dtStr === today_str;
+    const events  = State.data.agendamentos.filter(a => a.data === dtStr);
+
+    const dayName = day.toLocaleDateString('pt-BR', { weekday: 'long' });
+    const dayNum  = day.getDate();
+    const dayMon  = day.toLocaleDateString('pt-BR', { month: 'short' });
+
+    html += `<div class="agenda-day-item">`;
+    html += `<div class="agenda-day-header" onclick="openAgModal('${dtStr}')">
+      <div class="agenda-day-num ${isToday ? 'today' : ''}">${dayNum}</div>
+      <div class="agenda-day-info">
+        <div class="agenda-day-name">${dayName} · ${dayMon}</div>
+        <div class="agenda-day-count">${events.length > 0 ? events.length + ' agendamento' + (events.length > 1 ? 's' : '') : 'Sem agendamentos'}</div>
+      </div>
+      <span style="color:var(--gold);font-size:18px;">+</span>
+    </div>`;
+
+    if (events.length > 0) {
+      html += '<div class="agenda-day-events">';
+      events.sort((a,b) => a.hora.localeCompare(b.hora)).forEach(ev => {
+        const cls = ev.status === 'confirmado' ? 'ev-confirmado'
+                  : ev.status === 'cancelado'  ? 'ev-cancelado'
+                  : ev.status === 'aguardando' ? 'ev-aguardando' : '';
+        const icon = ev.status === 'confirmado' ? '✓'
+                   : ev.status === 'cancelado'  ? '✕'
+                   : ev.status === 'aguardando' ? '📱' : '⏳';
+        html += `<div class="agenda-list-event ${cls}" onclick="openAgModal('${ev.data}','${ev.hora}',${ev.id})">
+          <div class="ev-hora">${ev.hora}</div>
+          <div class="ev-info">
+            <div class="ev-nome">${ev.clienteNome}</div>
+            <div class="ev-svc">${icon} ${ev.servicoNome}</div>
+          </div>
+        </div>`;
+      });
+      html += '</div>';
+    } else {
+      html += `<div class="agenda-add-btn" onclick="openAgModal('${dtStr}')">
+        <span>＋</span> Tocar para agendar
+      </div>`;
+    }
+
+    html += '</div>';
+  });
+
+  html += '</div>';
+  wrap.innerHTML = html;
+}
+
 function agendaNav(dir) { agendaWeekOffset += dir; renderAgendaGrid(); }
 
 function getWeekDays(offset) {
@@ -2570,6 +2734,7 @@ function getWeekDays(offset) {
 }
 
 function renderAgendaGrid() {
+  if (isMobile()) { renderAgendaMobileList(); return; }
   const days = getWeekDays(agendaWeekOffset);
   const today_str = today();
   const dayNames = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
