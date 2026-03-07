@@ -979,20 +979,174 @@ option { background: var(--bg-card2); color: var(--text); }
   .grid-65-35 { grid-template-columns: 1fr; }
 }
 
-@media (max-width: 800px) {
+/* ─── MOBILE (até 768px) ─────────────────────────────────────────── */
+@media (max-width: 768px) {
+
+  /* Sidebar vira drawer deslizante */
   .sidebar {
     transform: translateX(-100%);
+    z-index: 200;
+    box-shadow: 4px 0 24px rgba(0,0,0,0.18);
+    transition: transform 0.3s cubic-bezier(.4,0,.2,1);
   }
-  .sidebar.open {
-    transform: translateX(0);
+  .sidebar.open { transform: translateX(0); }
+
+  /* Overlay escuro ao abrir sidebar */
+  .sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 199;
   }
-  .main {
-    margin-left: 0;
+  .sidebar-overlay.show { display: block; }
+
+  /* Main ocupa tela toda */
+  .main { margin-left: 0; padding-bottom: 72px; }
+
+  /* Topbar mobile compacta */
+  .topbar {
+    height: 56px;
+    padding: 0 16px;
   }
-  .page-content { padding: 16px; }
-  .kpi-grid { grid-template-columns: 1fr 1fr; }
-  .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  .topbar-title h1 { font-size: 16px; }
+  .topbar-title p  { display: none; }
+  .topbar-date     { display: none; }
+
+  /* Botão hamburger visível */
+  .btn-menu {
+    display: flex !important;
+  }
+
+  /* Conteúdo */
+  .page-content { padding: 14px; }
+
+  /* KPI grid 2 colunas */
+  .kpi-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .kpi-card { padding: 14px; }
+  .kpi-value { font-size: 20px; }
+
+  /* Grids viram 1 coluna */
+  .grid-2, .grid-3, .grid-65-35 { grid-template-columns: 1fr; gap: 12px; }
+
+  /* Cards */
+  .card { padding: 16px; }
+
+  /* Tabelas: scroll horizontal */
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table { min-width: 480px; font-size: 13px; }
+
+  /* Modal ocupa tela toda */
+  .modal-box {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    border-radius: 20px 20px 0 0 !important;
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  .modal-overlay {
+    align-items: flex-end !important;
+    padding: 0 !important;
+  }
+
+  /* Chart menor */
+  .chart-container { height: 160px; }
+
+  /* Botões maiores para toque */
+  .btn { min-height: 40px; }
+  .btn-sm { min-height: 34px; }
+
+  /* Agenda grid mobile */
+  .agenda-week-grid { font-size: 11px; }
+  .agenda-slot { min-height: 52px; }
+
+  /* Bottom nav */
+  .bottom-nav {
+    display: flex !important;
+  }
+
+  /* Oculta seções da sidebar no footer */
+  .sidebar-footer .sidebar-time { display: none; }
 }
+
+/* ─── BOTTOM NAVIGATION BAR ──────────────────────────────────────── */
+.bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: 64px;
+  background: var(--bg-card);
+  border-top: 1px solid var(--border-soft);
+  z-index: 150;
+  padding: 0 4px;
+  padding-bottom: env(safe-area-inset-bottom);
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
+}
+.bottom-nav-items {
+  display: flex;
+  height: 100%;
+  align-items: stretch;
+}
+.bottom-nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  cursor: pointer;
+  border-radius: 12px;
+  margin: 6px 2px;
+  transition: background 0.15s;
+  position: relative;
+  -webkit-tap-highlight-color: transparent;
+}
+.bottom-nav-item:active { background: var(--gold-glow); }
+.bottom-nav-item.active { background: var(--gold-glow); }
+.bottom-nav-item .bn-icon { font-size: 20px; line-height: 1; }
+.bottom-nav-item .bn-label {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+}
+.bottom-nav-item.active .bn-label { color: var(--gold); }
+.bottom-nav-item .bn-badge {
+  position: absolute;
+  top: 4px; right: 18%;
+  background: #25D366;
+  color: #fff;
+  border-radius: 99px;
+  font-size: 9px;
+  font-weight: 700;
+  min-width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+}
+
+/* Botão hamburguer (oculto no desktop) */
+.btn-menu {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 38px; height: 38px;
+  border-radius: 10px;
+  background: var(--bg-card2);
+  border: 1px solid var(--border-soft);
+  cursor: pointer;
+  font-size: 18px;
+  flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn-menu:active { background: var(--gold-glow); }
 
 /* ─── ANIMATIONS ─── */
 .page-section {
@@ -1168,12 +1322,45 @@ option { background: var(--bg-card2); color: var(--text); }
   </div>
 </aside>
 
+<!-- Overlay para fechar sidebar no mobile -->
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+<!-- BOTTOM NAV (mobile) -->
+<nav class="bottom-nav" id="bottom-nav">
+  <div class="bottom-nav-items">
+    <div class="bottom-nav-item active" data-page="dashboard" onclick="mobileNav('dashboard',this)">
+      <span class="bn-icon">🏠</span>
+      <span class="bn-label">Início</span>
+    </div>
+    <div class="bottom-nav-item" data-page="agenda" onclick="mobileNav('agenda',this)">
+      <span class="bn-icon">📅</span>
+      <span class="bn-label">Agenda</span>
+      <span class="bn-badge" id="bn-badge" style="display:none">0</span>
+    </div>
+    <div class="bottom-nav-item" data-page="clientes" onclick="mobileNav('clientes',this)">
+      <span class="bn-icon">👥</span>
+      <span class="bn-label">Clientes</span>
+    </div>
+    <div class="bottom-nav-item" data-page="financeiro" onclick="mobileNav('financeiro',this)">
+      <span class="bn-icon">💰</span>
+      <span class="bn-label">Financeiro</span>
+    </div>
+    <div class="bottom-nav-item" onclick="openSidebar()">
+      <span class="bn-icon">☰</span>
+      <span class="bn-label">Menu</span>
+    </div>
+  </div>
+</nav>
+
 <!-- MAIN -->
 <main class="main">
   <div class="topbar">
-    <div class="topbar-title">
-      <h1 id="page-title">Dashboard</h1>
-      <p id="page-subtitle">Visão geral do seu negócio</p>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div class="btn-menu" onclick="openSidebar()">☰</div>
+      <div class="topbar-title">
+        <h1 id="page-title">Dashboard</h1>
+        <p id="page-subtitle">Visão geral do seu negócio</p>
+      </div>
     </div>
     <div class="topbar-actions">
       <div class="topbar-date" id="topbar-date">Carregando...</div>
@@ -1425,6 +1612,40 @@ function getMonthName(n) {
 }
 
 // Clock
+// ─── MOBILE NAVIGATION ────────────────────────────────────────────────────────
+function openSidebar() {
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('sidebar-overlay').classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('show');
+  document.body.style.overflow = '';
+}
+
+function mobileNav(page, el) {
+  // Atualiza bottom nav active
+  document.querySelectorAll('.bottom-nav-item').forEach(i => i.classList.remove('active'));
+  if (el) el.classList.add('active');
+  // Navega
+  navigate(page);
+}
+
+function syncBottomNav(page) {
+  // Sincroniza bottom nav com a página atual
+  document.querySelectorAll('.bottom-nav-item[data-page]').forEach(i => {
+    i.classList.toggle('active', i.dataset.page === page);
+  });
+}
+
+function updateBnBadge(count) {
+  const badge = document.getElementById('bn-badge');
+  if (!badge) return;
+  if (count > 0) { badge.style.display = 'flex'; badge.textContent = count; }
+  else { badge.style.display = 'none'; }
+}
+
 // ─── TEMA ─────────────────────────────────────────────────────────────────────
 function toggleTheme() {
   const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
@@ -1461,7 +1682,11 @@ window.addEventListener('DOMContentLoaded', async () => {
     now.toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
   document.querySelectorAll('.nav-item[data-page]').forEach(el => {
-    el.addEventListener('click', () => navigate(el.dataset.page));
+    el.addEventListener('click', () => {
+      navigate(el.dataset.page);
+      closeSidebar(); // fecha sidebar no mobile ao navegar
+      syncBottomNav(el.dataset.page);
+    });
   });
 
   // Mostra loading enquanto busca dados do backend

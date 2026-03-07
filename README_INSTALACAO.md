@@ -248,18 +248,34 @@ Comando para executar o cloudflare via docker cmd cli
 
 docker run --rm -it   --network host   cloudflare/cloudflared:latest   tunnel --url http://localhost:3000
 
+###ACESSO DO PROJETO VIA SSH###
+git remote set-url origin git@github.com:/laerteporto/rspsistema.git
+ssh -T git@github.com
+Com SSH configurado, você pode simplesmente:
+git push -u origin main
+sem pedir senha/token.
+
+Você pode configurar o Git para lembrar seu token (no Linux):
+
+git config --global credential.helper cache
+ou
+git config --global credential.helper store
+
 #########GIT COMANDOS###################
 
 ##CRIAR PROJETO NO GIT HUB - CLI
+git status
 git pull
 git add .
 git commit -m "feat: nova melhoria"
 git push
+git push --set-upstream origin main
 
 
 ##Atualizar projeto do git - comandos 
 Esta na pasta do projeto e executar os seguintes comandos 
 
+git push -f origin main
 git add .
 git commit -m "feat: atualiza backend e ajustes na interface"
 git push
@@ -275,3 +291,17 @@ git clone https://github.com/usuario/projeto.git
 Se você já configurou SSH, use:
 
 git clone git@github.com:usuario/projeto.git
+
+###################LINK SISTEMA RSPSISTEMAS###########
+https://rspsystem.netlify.app/login.html
+
+laerte
+S@muelporto11
+rogerio
+RSP@admin2026
+
+console.firebase.google.com
+
+https://netlify.com/
+
+
