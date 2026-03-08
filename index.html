@@ -3026,7 +3026,7 @@ function deleteAg(id) {
 
     // 2. Chama rota DELETE dedicada no backend
     try {
-      const res  = await fetch(`/api/agendamentos/${id}`, { method: 'DELETE' });
+      const res  = await fetch(`${API_BASE}/api/agendamentos/${id}`, { method: 'DELETE' });
       const json = await res.json();
       if (json.ok) {
         toast('Agendamento excluído ✓', 'info');
@@ -3038,7 +3038,7 @@ function deleteAg(id) {
       // Fallback: envia estado completo via POST
       console.warn('[DELETE] Fallback para POST sync:', e);
       try {
-        await fetch('/api/agendamentos', {
+        await fetch(`${API_BASE}/api/agendamentos`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -3490,9 +3490,28 @@ function exportCSV() {
 
 // ═══ BACKEND API (Evolution API Integration) ═══
 
-const API_BASE = window.location.port === '3000' || window.location.hostname !== ''
-  ? ''           // same origin when served by Node
-  : 'http://localhost:3000';
+// ── Detecta ambiente automaticamente ──────────────────────────────────────────
+// localhost:3000  → backend local (desenvolvimento)
+// GitHub Pages    → Railway (produção)
+// Railway URL     → mesmo origin
+const RAILWAY_URL = 'https://swebsalao-production.up.railway.app';
+
+const API_BASE = (() => {
+  const host = window.location.hostname;
+  const port = window.location.port;
+  // Rodando direto pelo Node local
+  if (port === '3000') return '';
+  // Rodando no Railway (mesmo servidor)
+  if (host.includes('railway.app')) return '';
+  // GitHub Pages ou qualquer outro → aponta para Railway
+  if (host.includes('github.io') || host.includes('github.com')) return RAILWAY_URL;
+  // Cloudflare Tunnel ou outro domínio externo → Railway
+  if (host !== 'localhost' && host !== '127.0.0.1') return RAILWAY_URL;
+  // Fallback local
+  return 'http://localhost:3000';
+})();
+
+console.log('[API] Backend:', API_BASE || 'mesmo servidor');
 
 const BackendAPI = {
   async get(path) {
