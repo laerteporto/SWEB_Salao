@@ -1588,6 +1588,18 @@ function loadData() {
 // Evita que localStorage vazio sobrescreva db.json ao abrir pelo Cloudflare
 let _appReady = false;
 
+// Envia dados para o backend (sempre, independente do _appReady)
+function syncBackend() {
+  if (typeof BackendAPI === 'undefined') return;
+  BackendAPI.post('/api/agendamentos', {
+    agendamentos: State.data.agendamentos,
+    clientes:     State.data.clientes,
+    servicos:     State.data.servicos,
+    financeiro:   State.data.financeiro,
+    wppMensagens: State.data.wppMensagens || []
+  }).catch(e => console.warn('[SYNC] Erro ao sincronizar:', e));
+}
+
 function saveAll() {
   Storage.save('clientes',     State.data.clientes);
   Storage.save('servicos',     State.data.servicos);
@@ -1595,18 +1607,9 @@ function saveAll() {
   Storage.save('agendamentos', State.data.agendamentos);
   Storage.save('wppMensagens', State.data.wppMensagens || []);
 
-  // Só sincroniza com backend após app estar pronto (dados carregados do backend)
+  // Só sincroniza com backend após app estar pronto
   if (!_appReady) return;
-
-  if (typeof BackendAPI !== 'undefined') {
-    BackendAPI.post('/api/agendamentos', {
-      agendamentos: State.data.agendamentos,
-      clientes:     State.data.clientes,
-      servicos:     State.data.servicos,
-      financeiro:   State.data.financeiro,
-      wppMensagens: State.data.wppMensagens || []
-    }).catch(() => {});
-  }
+  syncBackend();
 }
 
 // ─── NAVIGATION ───────────────────────────────────────────────────────────────
@@ -1711,6 +1714,10 @@ function getMonthName(n) {
 
 // Clock
 // ─── MOBILE NAVIGATION ────────────────────────────────────────────────────────
+// Qualquer interação do usuário libera o sync com backend
+document.addEventListener('click', () => { _appReady = true; }, { once: true });
+document.addEventListener('touchstart', () => { _appReady = true; }, { once: true });
+
 function openSidebar() {
   document.getElementById('sidebar').classList.add('open');
   document.getElementById('sidebar-overlay').classList.add('show');
@@ -2698,11 +2705,21 @@ function renderAgendaMobileList() {
         const icon = ev.status === 'confirmado' ? '✓'
                    : ev.status === 'cancelado'  ? '✕'
                    : ev.status === 'aguardando' ? '📱' : '⏳';
-        html += `<div class="agenda-list-event ${cls}" onclick="openAgModal('${ev.data}','${ev.hora}',${ev.id})">
-          <div class="ev-hora">${ev.hora}</div>
-          <div class="ev-info">
+        html += `<div class="agenda-list-event ${cls}">
+          <div class="ev-hora" onclick="openAgModal('${ev.data}','${ev.hora}',${ev.id})">${ev.hora}</div>
+          <div class="ev-info" onclick="openAgModal('${ev.data}','${ev.hora}',${ev.id})" style="flex:1;">
             <div class="ev-nome">${ev.clienteNome}</div>
             <div class="ev-svc">${icon} ${ev.servicoNome}</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
+            <button onclick="event.stopPropagation();openAgModal('${ev.data}','${ev.hora}',${ev.id})"
+              style="background:var(--gold-glow);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:13px;cursor:pointer;color:var(--gold);">
+              ✏️
+            </button>
+            <button onclick="event.stopPropagation();deleteAg(${ev.id})"
+              style="background:rgba(224,92,92,0.12);border:1px solid rgba(224,92,92,0.2);border-radius:8px;padding:6px 10px;font-size:13px;cursor:pointer;color:var(--red);">
+              🗑️
+            </button>
           </div>
         </div>`;
       });
@@ -2997,12 +3014,14 @@ function saveAg(editId) {
 function deleteAg(id) {
   if (!confirm('Excluir este agendamento?')) return;
   State.data.agendamentos = State.data.agendamentos.filter(a => a.id !== id);
-  // Also remove from wpp inbox
   if (State.data.wppMensagens) {
     State.data.wppMensagens = State.data.wppMensagens.filter(m => m.agId !== id);
     Storage.save('wppMensagens', State.data.wppMensagens);
   }
-  saveAll();
+  // Salva localmente e força sync com backend imediatamente
+  Storage.save('agendamentos', State.data.agendamentos);
+  _appReady = true; // garante que o sync vai ocorrer
+  syncBackend();
   closeModal('modal-ag');
   toast('Agendamento excluído', 'info');
   renderAgendaGrid();

@@ -1,72 +1,18 @@
 {
   "agendamentos": [
     {
-      "id": 8,
-      "data": "2026-03-02",
-      "hora": "08:00",
-      "clienteId": 1,
-      "clienteNome": "Ana Paula Ferreira",
-      "servicoId": 4,
-      "servicoNome": "Escova Progressiva",
-      "valor": 280,
-      "status": "confirmado",
-      "obs": ""
-    },
-    {
-      "id": 21,
-      "data": "2026-03-04",
-      "hora": "13:00",
-      "clienteId": 10,
-      "clienteNome": "shelly cliente",
-      "servicoId": 1,
-      "servicoNome": "Corte Feminino",
-      "valor": 65,
-      "status": "cancelado",
-      "obs": "",
-      "wppEnviado": true,
-      "wppEnviadoEm": "2026-03-04T00:39:34.101Z"
-    },
-    {
-      "id": 22,
-      "data": "2026-03-05",
-      "hora": "18:00",
-      "clienteId": 10,
-      "clienteNome": "shelly cliente",
-      "servicoId": 1,
-      "servicoNome": "Corte Feminino",
-      "valor": 65,
-      "status": "confirmado",
-      "obs": "",
-      "wppEnviado": true,
-      "wppEnviadoEm": "2026-03-04T00:44:20.235Z"
-    },
-    {
-      "id": 23,
-      "data": "2026-03-05",
+      "id": 25,
+      "data": "2026-03-08",
       "hora": "08:00",
       "clienteId": 9,
       "clienteNome": "laerte",
       "servicoId": 1,
       "servicoNome": "Corte Feminino",
       "valor": 65,
-      "status": "cancelado",
-      "obs": "",
-      "wppEnviado": true,
-      "wppEnviadoEm": "2026-03-04T00:47:41.554Z"
-    },
-    {
-      "id": 24,
-      "data": "2026-03-07",
-      "hora": "14:00",
-      "clienteId": 9,
-      "clienteNome": "laerte",
-      "servicoId": 1,
-      "servicoNome": "Corte Feminino",
-      "valor": 65,
       "status": "confirmado",
       "obs": "",
       "wppEnviado": true,
-      "wppEnviadoEm": "2026-03-07T23:09:59.453Z"
+      "wppEnviadoEm": "2026-03-08T00:56:00.371Z"
     }
   ],
   "clientes": [
@@ -454,74 +400,5 @@
       "createdAt": "2025-09-30"
     }
   ],
-  "wppMensagens": [
-    {
-      "id": 2,
-      "agId": 21,
-      "clienteId": 10,
-      "clienteNome": "shelly cliente",
-      "clienteTel": "62 9511-0189",
-      "phoneWpp": "556295110189",
-      "servico": "Corte Feminino",
-      "data": "2026-03-04",
-      "hora": "13:00",
-      "enviadoEm": "2026-03-04T00:39:34.101Z",
-      "enviadoEmSec": "1772584772",
-      "resposta": "nao",
-      "respostaEm": "2026-03-04T00:40:40.179Z",
-      "lida": false,
-      "evolutionMsgId": "3EB0A7D8DDE2B87D03877B"
-    },
-    {
-      "id": 3,
-      "agId": 22,
-      "clienteId": 10,
-      "clienteNome": "shelly cliente",
-      "clienteTel": "62 9511-0189",
-      "phoneWpp": "556295110189",
-      "servico": "Corte Feminino",
-      "data": "2026-03-05",
-      "hora": "18:00",
-      "enviadoEm": "2026-03-04T00:44:20.235Z",
-      "enviadoEmSec": "1772585059",
-      "resposta": "sim",
-      "respostaEm": "2026-03-04T00:44:40.212Z",
-      "lida": false,
-      "evolutionMsgId": "3EB06A94F9AD88B3B7419E"
-    },
-    {
-      "id": 4,
-      "agId": 23,
-      "clienteId": 9,
-      "clienteNome": "laerte",
-      "clienteTel": "62982259851",
-      "phoneWpp": "5562982259851",
-      "servico": "Corte Feminino",
-      "data": "2026-03-05",
-      "hora": "08:00",
-      "enviadoEm": "2026-03-04T00:47:41.554Z",
-      "enviadoEmSec": "1772585261",
-      "resposta": "nao",
-      "respostaEm": "2026-03-04T00:48:00.246Z",
-      "lida": false,
-      "evolutionMsgId": "3EB0709C0EBFF5BBD119AE"
-    },
-    {
-      "id": 5,
-      "agId": 24,
-      "clienteId": 9,
-      "clienteNome": "laerte",
-      "clienteTel": "62982259851",
-      "phoneWpp": "5562982259851",
-      "servico": "Corte Feminino",
-      "data": "2026-03-07",
-      "hora": "14:00",
-      "enviadoEm": "2026-03-07T23:09:59.453Z",
-      "enviadoEmSec": "1772924998",
-      "resposta": "sim",
-      "respostaEm": "2026-03-07T23:10:16.729Z",
-      "lida": false,
-      "evolutionMsgId": "3EB0F4F3830B6504DC84B9"
-    }
-  ]
+  "wppMensagens": []
 }
