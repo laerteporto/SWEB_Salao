@@ -789,15 +789,10 @@ async function autoPollRespostas() {
 
         if (idxNossa < 0) { console.log(`[POLL] Msg nossa nao achada`); continue; }
 
-        // Inclui msgs fromMe:true com texto SIM/NAO pois Evolution v1.8 às vezes
-        // marca msgs recebidas como fromMe quando enviadas de outro dispositivo
-        const depois = arr.slice(idxNossa + 1).filter(m => {
-          if (!m?.key?.fromMe) return true; // msgs do cliente sempre incluir
-          const txt = xtxt(m);
-          // Inclui msg nossa SÓ se for exatamente SIM ou NAO (resposta do cliente mal marcada)
-          return parseRespostaCliente(txt) !== null;
-        });
-        console.log(`[POLL] Msgs apos pos ${idxNossa}: ${depois.length}`);
+        // SOMENTE mensagens do cliente (fromMe:false) são aceitas como resposta
+        // fromMe:true = mensagem enviada pelo sistema — NUNCA confirmar automaticamente
+        const depois = arr.slice(idxNossa + 1).filter(m => m?.key?.fromMe === false);
+        console.log(`[POLL] Msgs cliente apos pos ${idxNossa}: ${depois.length}`);
         if (!depois.length) { console.log(`[POLL] Aguardando...`); continue; }
 
         let resposta = null;
