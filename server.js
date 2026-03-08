@@ -759,52 +759,37 @@ async function autoPollRespostas() {
           console.log(`  [${i}] ${m?.key?.fromMe ? 'NOS' : 'CLI'} ts=${xts2(m?.messageTimestamp)} id=${String(m?.key?.id).slice(-8)} "${xtxt(m).slice(0,40)}"`);
         });
 
-        // Acha nossa mensagem pelo ID salvo
-        let idxNossa = -1;
-        if (msg.evolutionMsgId) {
-          idxNossa = arr.findIndex(m => m?.key?.id === msg.evolutionMsgId);
-          console.log(`[POLL] ID ${msg.evolutionMsgId?.slice(-8)} -> pos=${idxNossa}`);
-        }
+        // Timestamp de quando enviamos a confirmação — só aceita respostas DEPOIS disso
+        const tsEnvio = msg.enviadoEmSec || 0;
+        console.log(`[POLL] tsEnvio=${tsEnvio} (${new Date(tsEnvio*1000).toISOString()})`);
 
-        // Fallback 1: por hora do agendamento no texto
-        if (idxNossa < 0 && msg.hora) {
-          for (let i = 0; i < arr.length; i++) {
-            if (!arr[i]?.key?.fromMe) continue;
-            const txt = xtxt(arr[i]);
-            if (txt.includes(msg.hora) && txt.includes('agendamento')) {
-              idxNossa = i; console.log(`[POLL] Achou por hora ${msg.hora} pos=${i}`); break;
-            }
-          }
-        }
-
-        // Fallback 2: ultima msg nossa com "agendamento"
-        if (idxNossa < 0) {
-          for (let i = arr.length - 1; i >= 0; i--) {
-            if (!arr[i]?.key?.fromMe) continue;
-            if (xtxt(arr[i]).includes('agendamento')) {
-              idxNossa = i; console.log(`[POLL] Fallback: pos=${i}`); break;
-            }
-          }
-        }
-
-        if (idxNossa < 0) { console.log(`[POLL] Msg nossa nao achada`); continue; }
-
-        // Evolution API v1.8 às vezes marca msgs do cliente como fromMe:true
-        // quando enviadas de dispositivos vinculados (bug conhecido)
-        // Regra: aceita fromMe:false sempre; aceita fromMe:true APENAS se texto for exatamente SIM ou NÃO
-        // NUNCA aceita fromMe:true com texto longo (evita que msg do sistema confirme sozinho)
-        const depois = arr.slice(idxNossa + 1).filter(m => {
+        // Filtra apenas mensagens APÓS o envio da nossa confirmação
+        // E que sejam respostas curtas SIM/NÃO (evita reutilizar respostas antigas)
+        const depois = arr.filter(m => {
+          const ts  = xts2(m?.messageTimestamp);
           const txt = xtxt(m).trim();
-          if (!m?.key?.fromMe) return true; // cliente normal → sempre aceita
-          // fromMe:true → só aceita se for resposta curta (SIM/NÃO) e NÃO for msg do sistema
-          const ehResposta = parseRespostaCliente(txt) !== null;
-          const ehMsgSistema = txt.includes('agendamento') || txt.includes('carinho') || 
-                               txt.includes('Confirmado') || txt.includes('Cancelado') ||
-                               txt.includes('Serviço') || txt.includes('Horário') || txt.length > 20;
-          return ehResposta && !ehMsgSistema;
+
+          // Deve ser POSTERIOR ao envio da confirmação
+          if (ts <= tsEnvio) return false;
+
+          // Deve ser uma resposta válida (SIM ou NÃO)
+          if (!parseRespostaCliente(txt)) return false;
+
+          // Não pode ser mensagem do sistema (texto longo ou palavras-chave do sistema)
+          const ehMsgSistema = txt.length > 20 ||
+            txt.includes('agendamento') || txt.includes('carinho') ||
+            txt.includes('Confirmado')  || txt.includes('Cancelado') ||
+            txt.includes('Serviço')     || txt.includes('Horário') ||
+            txt.includes('esperamos')   || txt.includes('remarcar');
+
+          if (ehMsgSistema) return false;
+
+          return true;
         });
-        console.log(`[POLL] Msgs candidatas apos pos ${idxNossa}: ${depois.length}`);
-        if (!depois.length) { console.log(`[POLL] Aguardando...`); continue; }
+
+        console.log(`[POLL] Respostas validas apos tsEnvio: ${depois.length}`);
+        depois.forEach(m => console.log(`  -> ts=${xts2(m?.messageTimestamp)} fromMe=${m?.key?.fromMe} txt="${xtxt(m)}"`));
+        if (!depois.length) { console.log(`[POLL] Aguardando resposta do cliente...`); continue; }
 
         let resposta = null;
         for (const m of depois) {
