@@ -1,20 +1,5 @@
 {
-  "agendamentos": [
-    {
-      "id": 25,
-      "data": "2026-03-08",
-      "hora": "08:00",
-      "clienteId": 9,
-      "clienteNome": "laerte",
-      "servicoId": 1,
-      "servicoNome": "Corte Feminino",
-      "valor": 65,
-      "status": "confirmado",
-      "obs": "",
-      "wppEnviado": true,
-      "wppEnviadoEm": "2026-03-08T00:56:00.371Z"
-    }
-  ],
+  "agendamentos": [],
   "clientes": [
     {
       "id": 5,
@@ -113,7 +98,7 @@
       "email": "",
       "aniversario": "",
       "obs": "",
-      "atendimentos": 2,
+      "atendimentos": 3,
       "createdAt": "2026-02-28"
     }
   ],

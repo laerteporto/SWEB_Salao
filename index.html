@@ -3012,20 +3012,92 @@ function saveAg(editId) {
 }
 
 function deleteAg(id) {
-  if (!confirm('Excluir este agendamento?')) return;
-  State.data.agendamentos = State.data.agendamentos.filter(a => a.id !== id);
-  if (State.data.wppMensagens) {
-    State.data.wppMensagens = State.data.wppMensagens.filter(m => m.agId !== id);
-    Storage.save('wppMensagens', State.data.wppMensagens);
-  }
-  // Salva localmente e força sync com backend imediatamente
-  Storage.save('agendamentos', State.data.agendamentos);
-  _appReady = true; // garante que o sync vai ocorrer
-  syncBackend();
-  closeModal('modal-ag');
-  toast('Agendamento excluído', 'info');
-  renderAgendaGrid();
-  if (document.getElementById('wpp-inbox-inner')) renderWppInboxCard();
+  showConfirm('Excluir este agendamento?', 'Esta ação não pode ser desfeita.', async () => {
+    closeModal('modal-ag');
+
+    // 1. Remove do state local imediatamente (UI responsiva)
+    State.data.agendamentos = State.data.agendamentos.filter(a => a.id !== id);
+    if (State.data.wppMensagens)
+      State.data.wppMensagens = State.data.wppMensagens.filter(m => m.agId !== id);
+    Storage.save('agendamentos', State.data.agendamentos);
+    Storage.save('wppMensagens', State.data.wppMensagens || []);
+    renderAgendaGrid();
+    if (document.getElementById('wpp-inbox-inner')) renderWppInboxCard();
+
+    // 2. Chama rota DELETE dedicada no backend
+    try {
+      const res  = await fetch(`/api/agendamentos/${id}`, { method: 'DELETE' });
+      const json = await res.json();
+      if (json.ok) {
+        toast('Agendamento excluído ✓', 'info');
+        console.log(`[DELETE] #${id} removido do backend`);
+      } else {
+        toast('Erro ao excluir no servidor', 'error');
+      }
+    } catch(e) {
+      // Fallback: envia estado completo via POST
+      console.warn('[DELETE] Fallback para POST sync:', e);
+      try {
+        await fetch('/api/agendamentos', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            agendamentos: State.data.agendamentos,
+            clientes:     State.data.clientes,
+            servicos:     State.data.servicos,
+            financeiro:   State.data.financeiro,
+            wppMensagens: State.data.wppMensagens || []
+          })
+        });
+        toast('Agendamento excluído ✓', 'info');
+      } catch(e2) {
+        toast('Excluído localmente (sem conexão)', 'warning');
+      }
+    }
+  });
+}
+
+// Modal de confirmação customizado (substitui o confirm() nativo)
+function showConfirm(titulo, msg, onConfirm) {
+  // Remove qualquer confirm anterior
+  const old = document.getElementById('confirm-modal');
+  if (old) old.remove();
+
+  const div = document.createElement('div');
+  div.id = 'confirm-modal';
+  div.style.cssText = `
+    position:fixed;inset:0;z-index:9999;
+    display:flex;align-items:center;justify-content:center;
+    background:rgba(0,0,0,0.5);padding:20px;
+  `;
+  div.innerHTML = `
+    <div style="
+      background:var(--bg-card);border-radius:16px;padding:28px 24px;
+      max-width:340px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,0.3);
+      border:1px solid var(--border-soft);
+    ">
+      <div style="font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;
+        color:var(--text);margin-bottom:8px;">${titulo}</div>
+      <div style="font-size:14px;color:var(--text-muted);margin-bottom:24px;">${msg}</div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button onclick="document.getElementById('confirm-modal').remove()"
+          style="padding:10px 20px;border-radius:8px;border:1px solid var(--border);
+            background:transparent;color:var(--text-soft);font-size:14px;cursor:pointer;">
+          Cancelar
+        </button>
+        <button id="confirm-ok-btn"
+          style="padding:10px 20px;border-radius:8px;border:none;
+            background:var(--red);color:#fff;font-size:14px;font-weight:600;cursor:pointer;">
+          Excluir
+        </button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(div);
+  document.getElementById('confirm-ok-btn').onclick = () => {
+    div.remove();
+    onConfirm();
+  };
 }
 
 
@@ -3485,18 +3557,30 @@ async function syncFromBackend() {
   const data = await BackendAPI.get('/api/agendamentos');
   if (!data?.ok) return;
 
-  const backendTemDados = data.agendamentos?.length || data.clientes?.length;
+  // Backend é a fonte de verdade: se tem clientes cadastrados, usa os dados do backend
+  // Isso garante que exclusões feitas em qualquer dispositivo se propagam para todos
+  const backendTemClientes = (data.clientes?.length || 0) > 0;
 
-  if (backendTemDados) {
-    if (data.agendamentos?.length) State.data.agendamentos = data.agendamentos;
-    if (data.clientes?.length)     State.data.clientes     = data.clientes;
-    if (data.servicos?.length)     State.data.servicos     = data.servicos;
-    if (data.financeiro?.length)   State.data.financeiro   = data.financeiro;
-    if (data.wppMensagens?.length >= (State.data.wppMensagens||[]).length)
-      State.data.wppMensagens = data.wppMensagens;
-    saveAll();
-  } else if (State.data.clientes.length) {
-    // Backend vazio — restaura do localStorage
+  if (backendTemClientes) {
+    // Aplica SEMPRE os dados do backend — incluindo exclusões
+    State.data.agendamentos = data.agendamentos || [];
+    State.data.clientes     = data.clientes     || [];
+    State.data.servicos     = data.servicos     || [];
+    State.data.financeiro   = data.financeiro   || [];
+    // wppMensagens: usa o maior entre backend e local
+    const localWpp   = State.data.wppMensagens || [];
+    const backendWpp = data.wppMensagens       || [];
+    State.data.wppMensagens = backendWpp.length >= localWpp.length ? backendWpp : localWpp;
+
+    // Salva no localStorage (cache local)
+    Storage.save('agendamentos', State.data.agendamentos);
+    Storage.save('clientes',     State.data.clientes);
+    Storage.save('servicos',     State.data.servicos);
+    Storage.save('financeiro',   State.data.financeiro);
+    Storage.save('wppMensagens', State.data.wppMensagens);
+
+  } else if ((State.data.clientes || []).length > 0) {
+    // Backend vazio mas local tem dados — restaura backend
     BackendAPI.post('/api/agendamentos', {
       agendamentos: State.data.agendamentos,
       clientes:     State.data.clientes,
@@ -3524,10 +3608,18 @@ function startPolling() {
       return m.resposta && (!prev || prev.resposta !== m.resposta);
     });
 
-    // Atualiza state
-    State.data.agendamentos = data.agendamentos || State.data.agendamentos;
-    State.data.wppMensagens = data.wppMensagens || State.data.wppMensagens || [];
-    saveAll();
+    // Backend é fonte de verdade — aplica sempre (captura exclusões de outros dispositivos)
+    if ((data.clientes?.length || 0) > 0) {
+      State.data.agendamentos = data.agendamentos || [];
+      State.data.clientes     = data.clientes     || [];
+      State.data.servicos     = data.servicos     || [];
+      State.data.financeiro   = data.financeiro   || [];
+      State.data.wppMensagens = data.wppMensagens || [];
+      // Salva localStorage sem disparar sync (evita loop)
+      Storage.save('agendamentos', State.data.agendamentos);
+      Storage.save('clientes',     State.data.clientes);
+      Storage.save('wppMensagens', State.data.wppMensagens);
+    }
 
     // Notifica novas respostas
     if (novas.length) {

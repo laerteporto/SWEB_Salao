@@ -662,6 +662,22 @@ app.post('/api/agendamentos', async (req, res) => {
   }
 });
 
+// DELETE /api/agendamentos/:id — exclui agendamento específico pelo ID
+app.delete('/api/agendamentos/:id', async (req, res) => {
+  try {
+    const id  = parseInt(req.params.id);
+    const db  = await readDB();
+    const antes = db.agendamentos.length;
+    db.agendamentos  = db.agendamentos.filter(a => a.id !== id);
+    db.wppMensagens  = (db.wppMensagens || []).filter(m => m.agId !== id);
+    await writeDB(db);
+    console.log(`[DB] Agendamento #${id} excluído (${antes} → ${db.agendamentos.length})`);
+    res.json({ ok: true, removidos: antes - db.agendamentos.length });
+  } catch(e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
 // GET /api/wpp-mensagens — apenas mensagens WPP
 app.get('/api/wpp-mensagens', async (req, res) => {
   const db = await readDB();
