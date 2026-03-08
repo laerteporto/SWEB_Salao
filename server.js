@@ -789,10 +789,21 @@ async function autoPollRespostas() {
 
         if (idxNossa < 0) { console.log(`[POLL] Msg nossa nao achada`); continue; }
 
-        // SOMENTE mensagens do cliente (fromMe:false) são aceitas como resposta
-        // fromMe:true = mensagem enviada pelo sistema — NUNCA confirmar automaticamente
-        const depois = arr.slice(idxNossa + 1).filter(m => m?.key?.fromMe === false);
-        console.log(`[POLL] Msgs cliente apos pos ${idxNossa}: ${depois.length}`);
+        // Evolution API v1.8 às vezes marca msgs do cliente como fromMe:true
+        // quando enviadas de dispositivos vinculados (bug conhecido)
+        // Regra: aceita fromMe:false sempre; aceita fromMe:true APENAS se texto for exatamente SIM ou NÃO
+        // NUNCA aceita fromMe:true com texto longo (evita que msg do sistema confirme sozinho)
+        const depois = arr.slice(idxNossa + 1).filter(m => {
+          const txt = xtxt(m).trim();
+          if (!m?.key?.fromMe) return true; // cliente normal → sempre aceita
+          // fromMe:true → só aceita se for resposta curta (SIM/NÃO) e NÃO for msg do sistema
+          const ehResposta = parseRespostaCliente(txt) !== null;
+          const ehMsgSistema = txt.includes('agendamento') || txt.includes('carinho') || 
+                               txt.includes('Confirmado') || txt.includes('Cancelado') ||
+                               txt.includes('Serviço') || txt.includes('Horário') || txt.length > 20;
+          return ehResposta && !ehMsgSistema;
+        });
+        console.log(`[POLL] Msgs candidatas apos pos ${idxNossa}: ${depois.length}`);
         if (!depois.length) { console.log(`[POLL] Aguardando...`); continue; }
 
         let resposta = null;
