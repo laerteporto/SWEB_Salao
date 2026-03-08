@@ -385,17 +385,49 @@ async function autoPollRespostas() {
         if (!todas) continue;
         let arr = (Array.isArray(todas) ? todas : []).sort((a,b) => xts(a?.messageTimestamp) - xts(b?.messageTimestamp));
         if (!arr.length) continue;
-        let idxNossa = msg.evolutionMsgId ? arr.findIndex(m => m?.key?.id === msg.evolutionMsgId) : -1;
+        // Acha nossa mensagem de confirmação enviada pelo sistema
+        let idxNossa = -1;
+
+        // 1. Pelo ID exato da mensagem salva
+        if (msg.evolutionMsgId) {
+          idxNossa = arr.findIndex(m => m?.key?.id === msg.evolutionMsgId && m?.key?.fromMe === true);
+        }
+
+        // 2. Fallback: mensagem fromMe que contém a hora do agendamento
         if (idxNossa < 0 && msg.hora) {
           for (let i = 0; i < arr.length; i++) {
-            if (arr[i]?.key?.fromMe && xtxt(arr[i]).includes(msg.hora) && xtxt(arr[i]).includes('agendamento')) { idxNossa = i; break; }
+            if (arr[i]?.key?.fromMe === true && xtxt(arr[i]).includes(msg.hora)) {
+              idxNossa = i; break;
+            }
           }
         }
-        if (idxNossa < 0) { for (let i = arr.length-1; i >= 0; i--) { if (arr[i]?.key?.fromMe && xtxt(arr[i]).includes('agendamento')) { idxNossa = i; break; } } }
+
+        // 3. Fallback: última mensagem fromMe com "agendamento" ou "carinho"
+        if (idxNossa < 0) {
+          for (let i = arr.length - 1; i >= 0; i--) {
+            const txt = xtxt(arr[i]);
+            if (arr[i]?.key?.fromMe === true && (txt.includes('agendamento') || txt.includes('carinho'))) {
+              idxNossa = i; break;
+            }
+          }
+        }
+
         if (idxNossa < 0) continue;
-        const depois = arr.slice(idxNossa + 1).filter(m => !m?.key?.fromMe || parseRespostaCliente(xtxt(m)));
+
+        // Pega APENAS mensagens do CLIENTE (fromMe:false) após nossa mensagem
+        // NUNCA aceita fromMe:true como resposta — evita auto-confirmação
+        const depois = arr.slice(idxNossa + 1).filter(m => m?.key?.fromMe === false);
+
+        console.log(`[POLL] ${msg.clienteNome}: nossa msg pos=${idxNossa}, respostas cliente=${depois.length}`);
+
         let resposta = null;
-        for (const m of depois) { resposta = parseRespostaCliente(xtxt(m)); if (resposta) break; }
+        for (const m of depois) {
+          const txt = xtxt(m);
+          if (!txt) continue;
+          console.log(`[POLL] Candidata cliente: "${txt}"`);
+          resposta = parseRespostaCliente(txt);
+          if (resposta) break;
+        }
         if (!resposta) continue;
         const mi = db.wppMensagens.findIndex(w => w.id === msg.id);
         db.wppMensagens[mi].resposta   = resposta;
