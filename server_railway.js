@@ -150,11 +150,13 @@ function buildConfirmacaoMsg(ag, salonName) {
 }
 
 function parseRespostaCliente(text) {
-  if (!text) return null;
-  const n = text.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  if (/^(sim|s|yes|confirmo|confirmado|ok|okay|pode|ta|top|1)$/i.test(n)) return 'sim';
-  if (/^(nao|n|no|cancelar|cancelado|cancela|2)$/i.test(n)) return 'nao';
-  return null;
+  try {
+    if (!text || typeof text !== "string") return null;
+    const n = text.trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+    if (/^(sim|s|yes|confirmo|confirmado|confirmar|confirma|quero|pode|ta|tá|ok|okay|combinado|certo|top|1)$/.test(n)) return "sim";
+    if (/^(nao|n|no|nope|cancelar|cancelado|cancela|cancelo|2)$/.test(n)) return "nao";
+    return null;
+  } catch(e) { return null; }
 }
 
 function extractPhone(remoteJid) {
@@ -335,7 +337,6 @@ app.post('/api/webhook', async (req, res) => {
     const msgContent = msg?.message || messageData?.message || {};
     const textBody = msgContent?.conversation || msgContent?.extendedTextMessage?.text || '';
     const resposta = parseRespostaCliente(textBody);
-    if (!resposta) return;
     const db = await readDB();
     if (!db.wppMensagens) db.wppMensagens = [];
     const senderDigits = senderPhone.replace(/\D/g, '');
@@ -343,6 +344,23 @@ app.post('/api/webhook', async (req, res) => {
       const telDigits = m.clienteTel?.replace(/\D/g, '') || '';
       return m.resposta === null && (telDigits.endsWith(senderDigits) || senderDigits.endsWith(telDigits));
     });
+
+    // Mensagem não reconhecida: orienta o cliente e NÃO derruba a conexão
+    if (!resposta) {
+      if (pendingMsg && textBody && textBody.trim().length > 0) {
+        try {
+          const config = await readConfig();
+          const nomeOrientacao = pendingMsg.clienteNome.split(' ')[0];
+          const msgOrientacao = `Olá, *${nomeOrientacao}*! 😊\n\nNão entendi sua resposta. Para confirmar seu agendamento, responda apenas:\n\n👉 *SIM* — para confirmar\n👉 *NÃO* — para cancelar`;
+          await evolutionRequest('POST', `/message/sendText/${config.evolutionInstance}`, {
+            number: remoteJid.replace('@s.whatsapp.net', ''), options: { delay: 600 }, textMessage: { text: msgOrientacao }
+          }, config);
+          console.log(`[WEBHOOK] Orientação enviada para ${senderPhone}: "${textBody}"`);
+        } catch(e) { console.error('[WEBHOOK] Orientação falhou:', e.message); }
+      }
+      return;
+    }
+
     if (!pendingMsg) return;
     const mi = db.wppMensagens.findIndex(m => m.id === pendingMsg.id);
     db.wppMensagens[mi].resposta   = resposta;
@@ -493,15 +511,40 @@ async function autoPollRespostas() {
         const depois = arr.slice(idxNossa + 1).filter(m => m?.key?.fromMe === false);
         console.log(`[POLL] ${msg.clienteNome}: confirmação pos=${idxNossa}, respostas cliente=${depois.length}`);
 
+        // Verifica se há mensagem não reconhecida para orientar o cliente (só a mais recente)
+        let ultimaNaoReconhecida = null;
         let resposta = null;
         for (const m of depois) {
           const txt = xtxt(m);
           if (!txt) continue;
           console.log(`[POLL] Candidata: "${txt}"`);
-          resposta = parseRespostaCliente(txt);
-          if (resposta) break;
+          const r = parseRespostaCliente(txt);
+          if (r) { resposta = r; break; }
+          else { ultimaNaoReconhecida = txt; } // guarda para orientar
         }
-        if (!resposta) { console.log(`[POLL] Aguardando resposta do cliente...`); continue; }
+        if (!resposta) {
+          // Se há mensagem não reconhecida que ainda não orientamos, envia orientação
+          if (ultimaNaoReconhecida) {
+            const jaOrientado = msg.ultimaOrientacaoTxt === ultimaNaoReconhecida;
+            if (!jaOrientado) {
+              try {
+                const nomeO = msg.clienteNome.split(' ')[0];
+                const msgO = `Olá, *${nomeO}*! 😊\n\nNão entendi sua resposta. Para confirmar seu agendamento, responda apenas:\n\n👉 *SIM* — para confirmar\n👉 *NÃO* — para cancelar`;
+                await evolutionRequest('POST', `/message/sendText/${config.evolutionInstance}`,
+                  { number: phone, options: { delay: 600 }, textMessage: { text: msgO } }, config
+                ).catch(() => {});
+                // Marca para não reenviar a mesma orientação repetidamente
+                const mi3 = db.wppMensagens.findIndex(w => w.id === msg.id);
+                if (mi3 >= 0) db.wppMensagens[mi3].ultimaOrientacaoTxt = ultimaNaoReconhecida;
+                atualizou = true;
+                console.log(`[POLL] Orientação enviada para ${msg.clienteNome}: "${ultimaNaoReconhecida}"`);
+              } catch(e) { console.log('[POLL] Orientação falhou:', e.message); }
+            }
+          } else {
+            console.log(`[POLL] Aguardando resposta do cliente...`);
+          }
+          continue;
+        }
 
         console.log(`[POLL] ✅ ${msg.clienteNome} → ${resposta.toUpperCase()}`);
 
