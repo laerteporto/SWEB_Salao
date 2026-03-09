@@ -272,7 +272,7 @@ app.post('/api/whatsapp/send', async (req, res) => {
         await new Promise(r => setTimeout(r, 2000)); // aguarda indexação
         const jid   = phone + '@s.whatsapp.net';
         const sent  = await evolutionRequest('POST', `/chat/findMessages/${config.evolutionInstance}`,
-          { where: { key: { remoteJid: jid, fromMe: true } }, limit: 5 }, config).catch(() => null);
+          { where: { remoteJid: jid, fromMe: true }, limit: 5 }, config).catch(() => null);
         const arr   = (Array.isArray(sent) ? sent : []).sort((a,b) => xts(b?.messageTimestamp) - xts(a?.messageTimestamp));
         const latest = arr.find(m => {
           const txt = m?.message?.conversation || m?.message?.extendedTextMessage?.text || '';
@@ -417,7 +417,7 @@ async function autoPollRespostas() {
         const jid   = phone + '@s.whatsapp.net';
 
         const todas = await evolutionRequest('POST', `/chat/findMessages/${config.evolutionInstance}`,
-          { where: { key: { remoteJid: jid } }, limit: 50 }, config).catch(() => null);
+          { where: { remoteJid: jid }, limit: 50 }, config).catch(() => null);
         if (!todas) continue;
 
         let arr = (Array.isArray(todas) ? todas : [])

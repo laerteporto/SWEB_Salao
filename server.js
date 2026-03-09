@@ -255,14 +255,14 @@ app.get('/api/whatsapp/diagnostico', async (req, res) => {
     // Busca msgs enviadas (fromMe:true) para pegar timestamp real
     const enviadas = await evolutionRequest('POST',
       `/chat/findMessages/${config.evolutionInstance}`,
-      { where: { key: { remoteJid: jid, fromMe: true } }, limit: 3 },
+      { where: { remoteJid: jid, fromMe: true }, limit: 3 },
       config
     ).catch(e => ({ erro: e.message }));
 
     // Busca respostas (fromMe:false)
     const recebidas = await evolutionRequest('POST',
       `/chat/findMessages/${config.evolutionInstance}`,
-      { where: { key: { remoteJid: jid, fromMe: false } }, limit: 5 },
+      { where: { remoteJid: jid, fromMe: false }, limit: 5 },
       config
     ).catch(e => ({ erro: e.message }));
 
@@ -320,10 +320,11 @@ app.post('/api/whatsapp/check-messages', async (req, res) => {
       const phoneDigits = msg.clienteTel.replace(/\D/g, '');
       const phone = phoneDigits.startsWith('55') ? phoneDigits : '55' + phoneDigits;
 
+      const jid2  = phone + '@s.whatsapp.net';
       // Busca mensagens recentes desta conversa na Evolution API
-      const data = await evolutionRequest('GET',
-        `/chat/findMessages/${config.evolutionInstance}?where.key.remoteJid=${phone}@s.whatsapp.net&limit=10`,
-        null, config
+      const data = await evolutionRequest('POST',
+        `/chat/findMessages/${config.evolutionInstance}`,
+        { where: { remoteJid: jid2 }, limit: 20 }, config
       ).catch(() => null);
 
       if (!data) continue;
@@ -413,7 +414,7 @@ app.post('/api/whatsapp/send', async (req, res) => {
         const jidParaBusca = phone + '@s.whatsapp.net';
         const sent = await evolutionRequest('POST',
           `/chat/findMessages/${config.evolutionInstance}`,
-          { where: { key: { remoteJid: jidParaBusca, fromMe: true } }, limit: 1 },
+          { where: { remoteJid: jidParaBusca, fromMe: true }, limit: 1 },
           config
         );
         const sentArr = Array.isArray(sent) ? sent : [];
@@ -735,7 +736,7 @@ async function autoPollRespostas() {
 
         const todas = await evolutionRequest('POST',
           `/chat/findMessages/${config.evolutionInstance}`,
-          { where: { key: { remoteJid: jid } }, limit: 50 },
+          { where: { remoteJid: jid }, limit: 50 },
           config
         ).catch(() => null);
 
