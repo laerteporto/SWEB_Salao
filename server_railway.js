@@ -387,9 +387,28 @@ app.get('/api/whatsapp/qr', async (req, res) => {
   const config = await readConfig();
   try {
     const data = await evolutionRequest('GET', `/instance/connect/${config.evolutionInstance}`, null, config);
-    const qrcode = data?.base64 || data?.qrcode?.base64 || data?.code || null;
-    res.json({ ok: true, qrcode, data });
-  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+
+    // Extrai o base64 de qualquer formato retornado pela Evolution API
+    let qrcode = data?.base64 || data?.qrcode?.base64 || data?.code || null;
+
+    // Garante que tem o prefixo data:image para o <img src> funcionar
+    if (qrcode && !qrcode.startsWith('data:')) {
+      qrcode = 'data:image/png;base64,' + qrcode;
+    }
+
+    if (!qrcode) {
+      // Tenta buscar via fetchInstances como fallback
+      const instances = await evolutionRequest('GET', '/instance/fetchInstances', null, config).catch(() => null);
+      const inst = Array.isArray(instances) ? instances.find(i => i?.instance?.instanceName === config.evolutionInstance) : null;
+      const fallbackQr = inst?.instance?.qrcode?.base64 || inst?.qrcode?.base64 || null;
+      if (fallbackQr) qrcode = fallbackQr.startsWith('data:') ? fallbackQr : 'data:image/png;base64,' + fallbackQr;
+    }
+
+    res.json({ ok: !!qrcode, qrcode, state: data?.instance?.state || data?.state || null });
+  } catch (e) {
+    console.error('[QR ERROR]', e.message);
+    res.status(500).json({ ok: false, error: e.message });
+  }
 });
 
 app.get('/api/whatsapp/diagnostico', async (req, res) => {
