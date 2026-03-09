@@ -2976,6 +2976,18 @@ function saveAg(editId) {
     toast('Preencha data, horário, cliente e serviço', 'error'); return;
   }
 
+  // Verifica conflito de horário
+  const conflito = State.data.agendamentos.find(a =>
+    a.data === data &&
+    a.hora === hora &&
+    a.status !== 'cancelado' &&
+    a.id !== editId
+  );
+  if (conflito) {
+    toast(`⚠️ Horário ocupado! ${conflito.clienteNome} — ${conflito.servicoNome} já agendado às ${hora} nesta data.`, 'error');
+    return;
+  }
+
   const cli = State.data.clientes.find(c => c.id === cliId);
   const svc = State.data.servicos.find(s => s.id === svcId);
 
