@@ -260,8 +260,35 @@ app.post('/api/whatsapp/send', async (req, res) => {
     const result = await evolutionRequest('POST', `/message/sendText/${config.evolutionInstance}`, {
       number: phone, options: { delay: 1200, presence: 'composing' }, textMessage: { text: msg }
     }, config);
-    let envioTimestampSec = result?.messageTimestamp || 0;
-    if (!envioTimestampSec) envioTimestampSec = Math.floor(Date.now() / 1000) - 60;
+
+    // Captura o timestamp REAL da mensagem enviada — tenta na resposta primeiro
+    const xts = t => { if (!t) return 0; if (typeof t === 'number') return t; if (typeof t === 'object') return t.low || t.seconds || 0; return parseInt(t) || 0; };
+    let envioTimestampSec = xts(result?.messageTimestamp) || xts(result?.key?.messageTimestamp) || 0;
+    let evolutionMsgId    = result?.key?.id || null;
+
+    // Se não veio na resposta, busca a mensagem que acabamos de enviar na Evolution API
+    if (!envioTimestampSec || !evolutionMsgId) {
+      try {
+        await new Promise(r => setTimeout(r, 2000)); // aguarda indexação
+        const jid   = phone + '@s.whatsapp.net';
+        const sent  = await evolutionRequest('POST', `/chat/findMessages/${config.evolutionInstance}`,
+          { where: { key: { remoteJid: jid, fromMe: true } }, limit: 5 }, config).catch(() => null);
+        const arr   = (Array.isArray(sent) ? sent : []).sort((a,b) => xts(b?.messageTimestamp) - xts(a?.messageTimestamp));
+        const latest = arr.find(m => {
+          const txt = m?.message?.conversation || m?.message?.extendedTextMessage?.text || '';
+          return txt.includes(ag.hora) || txt.includes('carinho') || txt.includes('agendamento');
+        }) || arr[0];
+        if (latest) {
+          if (!envioTimestampSec) envioTimestampSec = xts(latest.messageTimestamp);
+          if (!evolutionMsgId)    evolutionMsgId    = latest?.key?.id || null;
+        }
+      } catch(e) { console.log('[SEND] Fallback ts busca falhou:', e.message); }
+    }
+
+    // Último fallback: timestamp atual menos 30s (margem segura)
+    if (!envioTimestampSec) envioTimestampSec = Math.floor(Date.now() / 1000) - 30;
+
+    console.log(`[SEND] phone=${phone} ts=${envioTimestampSec} msgId=${evolutionMsgId}`);
     const ai = db.agendamentos.findIndex(a => a.id === agId);
     db.agendamentos[ai].status = 'aguardando';
     db.agendamentos[ai].wppEnviado = true;
@@ -274,13 +301,13 @@ app.post('/api/whatsapp/send', async (req, res) => {
         agId, clienteId: cli.id, clienteNome: cli.nome, clienteTel: cli.telefone,
         phoneWpp: phone, servico: ag.servicoNome, data: ag.data, hora: ag.hora,
         enviadoEm: new Date().toISOString(), enviadoEmSec: envioTimestampSec,
-        resposta: null, respostaEm: null, lida: false, evolutionMsgId: result?.key?.id || null
+        resposta: null, respostaEm: null, lida: false, evolutionMsgId: evolutionMsgId
       });
     } else {
       const mi = db.wppMensagens.findIndex(m => m.agId === agId);
       if (mi >= 0) {
         db.wppMensagens[mi].enviadoEmSec = envioTimestampSec;
-        db.wppMensagens[mi].evolutionMsgId = result?.key?.id || null;
+        db.wppMensagens[mi].evolutionMsgId = evolutionMsgId;
         db.wppMensagens[mi].resposta = null;
         db.wppMensagens[mi].respostaEm = null;
       }
@@ -373,80 +400,133 @@ async function autoPollRespostas() {
     if (!db.wppMensagens) return;
     const pendentes = db.wppMensagens.filter(m => m.resposta === null);
     if (!pendentes.length) return;
+
     const xtxt = m => m?.message?.conversation || m?.message?.extendedTextMessage?.text || '';
-    const xts  = t => { if (!t) return 0; if (typeof t === 'number') return t; if (typeof t === 'object') return t.low || 0; return parseInt(t) || 0; };
+    const xts  = t => {
+      if (!t) return 0;
+      if (typeof t === 'number') return t;
+      if (typeof t === 'object') return t.low || t.seconds || 0;
+      return parseInt(t) || 0;
+    };
     let atualizou = false;
+
     for (const msg of pendentes) {
       try {
-        const phone = msg.clienteTel.replace(/\D/g,'');
-        const jid   = (phone.startsWith('55') ? phone : '55' + phone) + '@s.whatsapp.net';
+        const phoneDigits = msg.clienteTel.replace(/\D/g, '');
+        const phone = phoneDigits.startsWith('55') ? phoneDigits : '55' + phoneDigits;
+        const jid   = phone + '@s.whatsapp.net';
+
         const todas = await evolutionRequest('POST', `/chat/findMessages/${config.evolutionInstance}`,
           { where: { key: { remoteJid: jid } }, limit: 50 }, config).catch(() => null);
         if (!todas) continue;
-        let arr = (Array.isArray(todas) ? todas : []).sort((a,b) => xts(a?.messageTimestamp) - xts(b?.messageTimestamp));
-        if (!arr.length) continue;
-        // Acha nossa mensagem de confirmação enviada pelo sistema
+
+        let arr = (Array.isArray(todas) ? todas : [])
+          .sort((a, b) => xts(a?.messageTimestamp) - xts(b?.messageTimestamp));
+
+        if (!arr.length) { console.log(`[POLL] ${msg.clienteNome}: sem msgs no histórico`); continue; }
+
+        // ── Localiza a mensagem de confirmação que enviamos ──────────────────
         let idxNossa = -1;
 
-        // 1. Pelo ID exato da mensagem salva
+        // 1. Pelo ID exato salvo no banco
         if (msg.evolutionMsgId) {
           idxNossa = arr.findIndex(m => m?.key?.id === msg.evolutionMsgId && m?.key?.fromMe === true);
         }
 
-        // 2. Fallback: mensagem fromMe que contém a hora do agendamento
+        // 2. Pelo timestamp salvo (margem de ±10s para evitar dessincronismo de relógio)
+        if (idxNossa < 0 && msg.enviadoEmSec && msg.enviadoEmSec > 0) {
+          let best = -1, bestDiff = 999;
+          for (let i = arr.length - 1; i >= 0; i--) {
+            if (arr[i]?.key?.fromMe !== true) continue;
+            const diff = Math.abs(xts(arr[i]?.messageTimestamp) - msg.enviadoEmSec);
+            if (diff <= 10 && diff < bestDiff) { best = i; bestDiff = diff; }
+          }
+          idxNossa = best;
+        }
+
+        // 3. Mensagem fromMe que contém a hora do agendamento (ex: "09:00")
         if (idxNossa < 0 && msg.hora) {
-          for (let i = 0; i < arr.length; i++) {
+          for (let i = arr.length - 1; i >= 0; i--) {
             if (arr[i]?.key?.fromMe === true && xtxt(arr[i]).includes(msg.hora)) {
               idxNossa = i; break;
             }
           }
         }
 
-        // 3. Fallback: última mensagem fromMe com "agendamento" ou "carinho"
+        // 4. Última fromMe com palavras-chave da nossa mensagem de confirmação
         if (idxNossa < 0) {
+          const kw = ['agendamento', 'carinho', 'confirmar', 'cancelar', 'SIM', 'NÃO', 'aguardamos'];
           for (let i = arr.length - 1; i >= 0; i--) {
             const txt = xtxt(arr[i]);
-            if (arr[i]?.key?.fromMe === true && (txt.includes('agendamento') || txt.includes('carinho'))) {
+            if (arr[i]?.key?.fromMe === true && kw.some(k => txt.includes(k))) {
               idxNossa = i; break;
             }
           }
         }
 
-        if (idxNossa < 0) continue;
+        // 5. Último fallback: qualquer fromMe mais recente
+        if (idxNossa < 0) {
+          for (let i = arr.length - 1; i >= 0; i--) {
+            if (arr[i]?.key?.fromMe === true) { idxNossa = i; break; }
+          }
+        }
 
-        // Pega APENAS mensagens do CLIENTE (fromMe:false) após nossa mensagem
-        // NUNCA aceita fromMe:true como resposta — evita auto-confirmação
+        if (idxNossa < 0) {
+          console.log(`[POLL] ${msg.clienteNome}: confirmação não encontrada no histórico (${arr.length} msgs)`);
+          continue;
+        }
+
+        // Persiste ID real da msg de confirmação para polls futuros (se ainda não tínhamos)
+        const msnossaid = arr[idxNossa]?.key?.id;
+        if (msnossaid && (!msg.evolutionMsgId || msg.evolutionMsgId !== msnossaid)) {
+          const mi2 = db.wppMensagens.findIndex(w => w.id === msg.id);
+          if (mi2 >= 0) {
+            db.wppMensagens[mi2].evolutionMsgId = msnossaid;
+            db.wppMensagens[mi2].enviadoEmSec   = xts(arr[idxNossa].messageTimestamp);
+            atualizou = true;
+          }
+          console.log(`[POLL] ${msg.clienteNome}: ID da confirmação salvo → ${msnossaid}`);
+        }
+
+        // ── Busca respostas do CLIENTE após nossa confirmação ────────────────
+        // NUNCA aceita fromMe:true — evita auto-confirmação
         const depois = arr.slice(idxNossa + 1).filter(m => m?.key?.fromMe === false);
-
-        console.log(`[POLL] ${msg.clienteNome}: nossa msg pos=${idxNossa}, respostas cliente=${depois.length}`);
+        console.log(`[POLL] ${msg.clienteNome}: confirmação pos=${idxNossa}, respostas cliente=${depois.length}`);
 
         let resposta = null;
         for (const m of depois) {
           const txt = xtxt(m);
           if (!txt) continue;
-          console.log(`[POLL] Candidata cliente: "${txt}"`);
+          console.log(`[POLL] Candidata: "${txt}"`);
           resposta = parseRespostaCliente(txt);
           if (resposta) break;
         }
-        if (!resposta) continue;
+        if (!resposta) { console.log(`[POLL] Aguardando resposta do cliente...`); continue; }
+
+        console.log(`[POLL] ✅ ${msg.clienteNome} → ${resposta.toUpperCase()}`);
+
         const mi = db.wppMensagens.findIndex(w => w.id === msg.id);
         db.wppMensagens[mi].resposta   = resposta;
         db.wppMensagens[mi].respostaEm = new Date().toISOString();
         db.wppMensagens[mi].lida       = false;
+
         const ai = db.agendamentos.findIndex(a => a.id === msg.agId);
         if (ai >= 0) db.agendamentos[ai].status = resposta === 'sim' ? 'confirmado' : 'cancelado';
+
         const nome = msg.clienteNome.split(' ')[0];
         const ag   = db.agendamentos[ai];
         const ret  = resposta === 'sim'
           ? `✅ *Confirmado, ${nome}!*\n\n📅 ${fmtDateServer(ag?.data)} às ${ag?.hora}\n✂️ ${ag?.servicoNome}\n\nTe esperamos! 💛 — *${config.salonName}*`
           : `😔 *Entendido, ${nome}.* Cancelado. Fale conosco para remarcar! — *${config.salonName}* 💛`;
         await evolutionRequest('POST', `/message/sendText/${config.evolutionInstance}`,
-          { number: phone.startsWith('55') ? phone : '55'+phone, options: { delay: 800 }, textMessage: { text: ret } }, config
-        ).catch(() => {});
+          { number: phone, options: { delay: 800 }, textMessage: { text: ret } }, config
+        ).catch(e => console.log('[POLL] Retorno falhou:', e.message));
+
         atualizou = true;
       } catch(e) { console.log('[POLL] Erro:', e.message); }
     }
-    if (atualizou) await writeDB(db);
+
+    if (atualizou) { await writeDB(db); console.log('[POLL] DB salvo'); }
   } catch(e) { console.log('[POLL] Crítico:', e.message); }
 }
 
