@@ -181,10 +181,44 @@ app.post('/api/config', async (req, res) => {
   try {
     const current = await readConfig();
     const updated = { ...current, ...req.body };
-    if (req.body.evolutionApiKey?.startsWith('****')) updated.evolutionApiKey = current.evolutionApiKey;
+    // Só preserva apiKey se vier mascarada (****) — caso contrário substitui
+    if (req.body.evolutionApiKey?.startsWith('****')) {
+      updated.evolutionApiKey = current.evolutionApiKey;
+    }
+    // Força limpeza de URL se vier explicitamente
+    if (req.body.evolutionUrl) {
+      updated.evolutionUrl = req.body.evolutionUrl.trim().replace(/\/$/, '');
+    }
     await writeConfig(updated);
-    res.json({ ok: true, message: 'Configuração salva' });
+    // Invalida cache em memória forçando releitura
+    db_mongo = null;
+    mongoClient = null;
+    await connectMongo();
+    const verify = await readConfig();
+    res.json({ ok: true, message: 'Configuração salva', savedUrl: verify.evolutionUrl });
   } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
+// Endpoint de reset forçado de config (emergência)
+app.post('/api/config/reset', async (req, res) => {
+  try {
+    const mdb = await connectMongo();
+    if (!mdb) return res.status(500).json({ ok: false, error: 'MongoDB indisponível' });
+    const col = mdb.collection('config');
+    const newCfg = {
+      _id: 'main',
+      evolutionUrl:      (req.body.evolutionUrl || '').trim().replace(/\/$/, ''),
+      evolutionInstance: req.body.evolutionInstance || 'shelly',
+      evolutionApiKey:   req.body.evolutionApiKey   || '',
+      webhookSecret:     'shelly2024',
+      salonName:         req.body.salonName || 'Studio Shelly Rodrigues',
+      salonPhone:        req.body.salonPhone || ''
+    };
+    await col.deleteOne({ _id: 'main' });
+    await col.insertOne(newCfg);
+    const { _id, ...saved } = newCfg;
+    res.json({ ok: true, message: 'Config resetada com sucesso!', config: { ...saved, evolutionApiKey: '****' + saved.evolutionApiKey.slice(-4) } });
+  } catch(e) { res.status(500).json({ ok: false, error: e.message }); }
 });
 
 app.get('/api/status', async (req, res) => {
