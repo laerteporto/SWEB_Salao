@@ -106,10 +106,10 @@ async function writeConfig(cfg) {
 
 function defaultConfig() {
   return {
-    evolutionUrl:      'http://localhost:8080',   // URL da sua Evolution API
-    evolutionInstance: 'shelly',                   // nome da instância criada
-    evolutionApiKey:   '',                         // API Key da Evolution
-    webhookSecret:     'shelly2024',               // segredo para validar webhooks
+    evolutionUrl:      process.env.EVOLUTION_URL || 'https://evolution-api-production-a563.up.railway.app',
+    evolutionInstance: process.env.EVOLUTION_INSTANCE || 'shelly',
+    evolutionApiKey:   process.env.EVOLUTION_API_KEY || '',
+    webhookSecret:     'shelly2024',
     salonName:         'Studio Shelly Rodrigues',
     salonPhone:        ''
   };
@@ -367,14 +367,53 @@ app.post('/api/whatsapp/check-messages', async (req, res) => {
 // GET /api/whatsapp/qr — retorna QR code para conectar instância
 app.get('/api/whatsapp/qr', async (req, res) => {
   const config = await readConfig();
+
+  // Valida se URL está configurada corretamente
+  if (!config.evolutionUrl || config.evolutionUrl.includes('localhost:8080')) {
+    return res.status(500).json({
+      ok: false,
+      error: 'URL da Evolution API não configurada. Acesse as Configurações e informe a URL correta.'
+    });
+  }
+
   try {
     const data = await evolutionRequest('GET',
       `/instance/connect/${config.evolutionInstance}`, null, config);
     // v1.x returns base64 directly, v2.x nests it
     const qrcode = data?.base64 || data?.qrcode?.base64 || data?.code || null;
-    res.json({ ok: true, qrcode, data });
+    if (qrcode) return res.json({ ok: true, qrcode, data });
+    throw new Error('QR Code não retornado pela Evolution API');
   } catch (e) {
-    res.status(500).json({ ok: false, error: e.message });
+    const errMsg = e.message || '';
+    const isNotFound = errMsg.includes('404') || errMsg.toLowerCase().includes('not found') ||
+                       errMsg.toLowerCase().includes('instance');
+
+    // Se instância não existe, cria automaticamente
+    if (isNotFound) {
+      try {
+        console.log('[QR] Instância não encontrada, criando automaticamente...');
+        await evolutionRequest('POST', '/instance/create', {
+          instanceName: config.evolutionInstance,
+          qrcode: true,
+          integration: 'WHATSAPP-BAILEYS'
+        }, config);
+        await new Promise(r => setTimeout(r, 1500));
+        const data2 = await evolutionRequest('GET',
+          `/instance/connect/${config.evolutionInstance}`, null, config);
+        const qrcode2 = data2?.base64 || data2?.qrcode?.base64 || data2?.code || null;
+        return res.json({ ok: true, qrcode: qrcode2, data: data2 });
+      } catch (e2) {
+        return res.status(500).json({ ok: false, error: `Erro ao criar instância: ${e2.message}` });
+      }
+    }
+
+    const friendlyMsg = errMsg.includes('timeout')
+      ? 'Evolution API não respondeu (timeout). Verifique se o serviço está ativo no Railway.'
+      : (errMsg.includes('ECONNREFUSED') || errMsg.includes('fetch'))
+      ? 'Não foi possível conectar à Evolution API. Verifique a URL nas configurações.'
+      : errMsg;
+
+    res.status(500).json({ ok: false, error: friendlyMsg });
   }
 });
 
