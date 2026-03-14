@@ -1666,7 +1666,10 @@ async function enviarWhatsAppBackend(agId) {
   const btn = document.getElementById('wpp-send-btn-' + agId);
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Enviando...'; }
   try {
-    const result = await BackendAPI.post('/api/whatsapp/send', { agId });
+    const cli = State.data.clientes.find(c => c.id === ag.clienteId);
+    const result = await BackendAPI.post('/api/whatsapp/send', {
+      agendamento: { ...ag, clienteTelefone: cli?.telefone || '' }
+    });
     if (result?.ok) {
       toast('✅ Mensagem enviada via WhatsApp!', 'success');
       closeModal('modal-ag');
@@ -3615,10 +3618,8 @@ function exportCSV() {
 // localhost:3000  → backend local (desenvolvimento)
 // GitHub Pages    → Railway (produção)
 // Railway URL     → mesmo origin
-)();
 
 console.log('[API] Backend:', API_BASE || 'mesmo servidor');
-;
 
 // Override enviarWhatsApp to use backend
 

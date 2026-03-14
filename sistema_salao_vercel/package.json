@@ -1,7 +1,7 @@
 {
   "name": "sistema-salao-shelly",
   "version": "2.1.0",
-  "description": "Studio Shelly Rodrigues — Sistema de Gestão (Vercel + Firebase + Evolution API)",
+  "description": "Studio Shelly Rodrigues — Sistema de Gestão",
   "private": true,
   "dependencies": {
     "firebase-admin": "^12.0.0"
