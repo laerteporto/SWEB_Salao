@@ -1967,29 +1967,28 @@ window.addEventListener('DOMContentLoaded', async () => {
   });
 
   // Firebase em background
-(async () => {
-  try {
-    const temFb = await Promise.race([
-      loadFromFirebase(),
-      new Promise(r => setTimeout(() => r(false), 8000))
-    ]);
-
-    if (temFb) {
-      navigate(State.currentPage);
-      updateWppBadge();
-      console.log('[Firebase] ✓ Dados carregados');
-    } else if (_fbReady && window.FirebaseDB) {
-      saveAll();
-      console.log('[Firebase] Seed salvo');
+  (async () => {
+    try {
+      const temFb = await Promise.race([
+        loadFromFirebase(),
+        new Promise(r => setTimeout(() => r(false), 8000))
+      ]);
+      if (temFb) {
+        navigate(State.currentPage);
+        updateWppBadge();
+        console.log('[Firebase] ✓ Dados carregados');
+      } else if (_fbReady && window.FirebaseDB) {
+        saveAll();
+        console.log('[Firebase] Seed salvo');
+      }
+      startPolling();
+    } catch(e) {
+      console.warn('[Init Firebase]', e.message);
+      startPolling();
     }
+  })();
+});
 
-    startPolling();
-
-  } catch(e) {
-    console.warn('[Init Firebase]', e.message);
-    startPolling();
-  }
-})();
 
 
 // ═══ DASHBOARD.JS ═══
@@ -3675,7 +3674,7 @@ async function renderWppConfig(container) {
       </div>
       <div style="background:var(--bg-card2);border-radius:var(--radius-sm);padding:16px;text-align:center;">
         <div style="font-size:22px;margin-bottom:6px;">🌐</div>
-        <div style="font-size:13px;font-weight:600;color:var(--text);">${status.config?.url || '—'}</div>
+        <div style="font-size:13px;font-weight:600;color:var(--text);">${(status.config?.url?.includes('vercel') ? 'https://evolution-api-production-a563.up.railway.app' : status.config?.url) || 'https://evolution-api-production-a563.up.railway.app'}</div>
         <div style="font-size:11px;color:var(--text-muted);">Evolution API URL</div>
       </div>
     </div>
@@ -3698,7 +3697,12 @@ async function renderWppConfig(container) {
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">URL da Evolution API</label>
-          <input class="form-control" id="cfg-url" placeholder="http://localhost:8080" value="${status.config?.url || ''}">
+          <input class="form-control" id="cfg-url"
+            value="https://evolution-api-production-a563.up.railway.app"
+            style="opacity:0.6;cursor:not-allowed;"
+            readonly
+            title="URL da Evolution API (fixada pelo sistema)">
+          <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">⚙️ Gerenciada pelo sistema</div>
         </div>
         <div class="form-group">
           <label class="form-label">Nome da Instância</label>
@@ -3748,14 +3752,18 @@ async function gerarQRCode() {
 
 async function salvarConfigWpp() {
   const cfg = {
-    evolutionUrl:      document.getElementById('cfg-url')?.value,
-    evolutionInstance: document.getElementById('cfg-instance')?.value,
+    evolutionUrl:      'https://evolution-api-production-a563.up.railway.app',
+    evolutionInstance: document.getElementById('cfg-instance')?.value || 'shelly',
     evolutionApiKey:   document.getElementById('cfg-apikey')?.value || undefined,
-    salonName:         document.getElementById('cfg-salon')?.value
+    salonName:         document.getElementById('cfg-salon')?.value || 'Studio Shelly Rodrigues'
   };
   const res = await BackendAPI.post('/api/config', cfg);
-  if (res?.ok) toast('Configurações salvas!', 'success');
-  else toast('Erro ao salvar configurações', 'error');
+  if (res?.ok) {
+    toast('Configurações salvas! ✓', 'success');
+    setTimeout(() => renderWppConfig(document.getElementById('page-content')), 1500);
+  } else {
+    toast('Erro ao salvar: ' + (res?.error || ''), 'error');
+  }
 }
 
 async function criarInstancia() {
