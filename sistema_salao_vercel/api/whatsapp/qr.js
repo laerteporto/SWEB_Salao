@@ -1,46 +1,45 @@
-// api/whatsapp/qr.js
-const { cors, readConfig, evolutionRequest } = require('../_helpers');
+// api/whatsapp/qr.js — Obtém o QR Code para conectar o WhatsApp
+const { applyCors } = require('../_cors');
 
-module.exports = async (req, res) => {
-  cors(res);
-  if (req.method === 'OPTIONS') return res.status(200).end();
+const EVOLUTION_URL      = process.env.EVOLUTION_URL      || 'https://evolution-api-production-a563.up.railway.app';
+const EVOLUTION_INSTANCE = process.env.EVOLUTION_INSTANCE || 'shelly';
+const EVOLUTION_API_KEY  = process.env.EVOLUTION_API_KEY  || 'shelly_apikey_2024';
 
-  const config = await readConfig();
-
-  if (!config.evolutionApiKey) {
-    return res.status(500).json({ ok: false, error: 'API Key não configurada. Acesse as Configurações e salve a API Key.' });
-  }
+module.exports = async function handler(req, res) {
+  if (applyCors(req, res)) return;
+  if (req.method !== 'GET') return res.status(405).json({ ok: false, error: 'Method not allowed' });
 
   try {
-    const data = await evolutionRequest('GET',
-      `/instance/connect/${config.evolutionInstance}`, null, config);
-    const qrcode = data?.base64 || data?.qrcode?.base64 || data?.code || null;
-    if (qrcode) return res.json({ ok: true, qrcode });
-    throw new Error('QR Code não retornado pela Evolution API');
-  } catch(e) {
-    const msg = e.message || '';
-    // Instância não existe — cria automaticamente
-    if (msg.includes('404') || msg.toLowerCase().includes('not found') || msg.toLowerCase().includes('instance')) {
-      try {
-        console.log('[QR] Criando instância automaticamente...');
-        await evolutionRequest('POST', '/instance/create', {
-          instanceName: config.evolutionInstance,
-          qrcode: true,
-          integration: 'WHATSAPP-BAILEYS'
-        }, config);
-        await new Promise(r => setTimeout(r, 1500));
-        const data2 = await evolutionRequest('GET',
-          `/instance/connect/${config.evolutionInstance}`, null, config);
-        const qrcode2 = data2?.base64 || data2?.qrcode?.base64 || data2?.code || null;
-        return res.json({ ok: true, qrcode: qrcode2, data: data2 });
-      } catch(e2) {
-        return res.status(500).json({ ok: false, error: `Erro ao criar instância: ${e2.message}` });
+    const response = await fetch(
+      `${EVOLUTION_URL}/instance/connect/${EVOLUTION_INSTANCE}`,
+      {
+        headers: {
+          'apikey': EVOLUTION_API_KEY,
+          'Content-Type': 'application/json',
+        },
       }
+    );
+
+    const data = await response.json();
+
+    // A Evolution API retorna { base64: 'data:image/png;base64,...' } ou { qrcode: { base64: ... } }
+    const qrcode =
+      data?.base64 ||
+      data?.qrcode?.base64 ||
+      data?.qr ||
+      null;
+
+    if (!qrcode) {
+      return res.status(200).json({
+        ok:    false,
+        error: 'QR Code não disponível. A instância pode já estar conectada ou a Evolution API está inacessível.',
+        raw:   data,
+      });
     }
-    const friendly = msg.includes('timeout')
-      ? 'Evolution API não respondeu. Verifique se o serviço está ativo no Railway.'
-      : msg.includes('ECONNREFUSED') ? 'Não foi possível conectar à Evolution API. Verifique a URL.'
-      : msg;
-    return res.status(500).json({ ok: false, error: friendly });
+
+    return res.status(200).json({ ok: true, qrcode });
+  } catch (err) {
+    console.error('[/api/whatsapp/qr] Erro:', err.message);
+    return res.status(500).json({ ok: false, error: err.message });
   }
 };

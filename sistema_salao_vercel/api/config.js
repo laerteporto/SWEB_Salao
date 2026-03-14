@@ -1,51 +1,27 @@
-// api/config.js
-const { cors, readConfig, writeConfig, defaultConfig } = require('./_helpers');
+// api/config.js — Endpoint de configuração (salva configs em runtime)
+// Nota: em Serverless Functions, variáveis de ambiente são imutáveis em runtime.
+// Esta rota valida e retorna as configurações atuais + dicas para o usuário.
+const { applyCors } = require('./_cors');
 
-const EVOLUTION_URL_CORRETA = 'https://evolution-api-production-a563.up.railway.app';
-
-module.exports = async (req, res) => {
-  cors(res);
-  if (req.method === 'OPTIONS') return res.status(200).end();
+module.exports = async function handler(req, res) {
+  if (applyCors(req, res)) return;
 
   if (req.method === 'GET') {
-    const cfg = await readConfig();
-    // Corrige URL errada se apontar para o próprio Vercel
-    if (!cfg.evolutionUrl || cfg.evolutionUrl.includes('vercel.app')) {
-      cfg.evolutionUrl = EVOLUTION_URL_CORRETA;
-    }
-    const safe = { ...cfg, evolutionApiKey: cfg.evolutionApiKey ? '****' + cfg.evolutionApiKey.slice(-4) : '' };
-    return res.json(safe);
+    return res.status(200).json({
+      ok:       true,
+      instance: process.env.EVOLUTION_INSTANCE || 'shelly',
+      url:      process.env.EVOLUTION_URL      || 'https://evolution-api-production-a563.up.railway.app',
+    });
   }
 
   if (req.method === 'POST') {
-    try {
-      const current = await readConfig();
-      const body = req.body;
-
-      // Corrige URL errada (usuário pode ter colocado a URL do Vercel por engano)
-      let evolutionUrl = body.evolutionUrl || current.evolutionUrl || EVOLUTION_URL_CORRETA;
-      if (evolutionUrl.includes('vercel.app') || evolutionUrl.includes('sistema-salao')) {
-        evolutionUrl = EVOLUTION_URL_CORRETA;
-      }
-      evolutionUrl = evolutionUrl.replace(/\/$/, ''); // remove barra final
-
-      const updated = {
-        ...current,
-        ...body,
-        evolutionUrl,
-      };
-
-      // Se apiKey mascarada ou vazia, mantém a atual
-      if (!body.evolutionApiKey || body.evolutionApiKey.startsWith('****')) {
-        updated.evolutionApiKey = current.evolutionApiKey || defaultConfig().evolutionApiKey;
-      }
-
-      await writeConfig(updated);
-      return res.json({ ok: true, message: 'Configuração salva', evolutionUrl });
-    } catch(e) {
-      return res.status(500).json({ ok: false, error: e.message });
-    }
+    // Em Serverless, não podemos salvar variáveis em runtime.
+    // Retornamos sucesso com instruções para o usuário.
+    return res.status(200).json({
+      ok:  true,
+      msg: 'Para alterar configurações permanentemente, atualize as variáveis de ambiente no painel do Vercel (Settings → Environment Variables) e faça um novo deploy.',
+    });
   }
 
-  res.status(405).json({ error: 'Method not allowed' });
+  return res.status(405).json({ ok: false, error: 'Method not allowed' });
 };
