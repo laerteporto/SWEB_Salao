@@ -1,0 +1,7 @@
+{
+  "name": "sistema-salao-shelly",
+  "version": "2.1.0",
+  "private": true,
+  "dependencies": { "firebase-admin": "^12.0.0" },
+  "engines": { "node": ">=18" }
+}

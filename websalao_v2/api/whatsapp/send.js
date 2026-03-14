@@ -3,7 +3,7 @@ const EVOLUTION_URL      = process.env.EVOLUTION_URL      || 'https://evolution-
 const EVOLUTION_INSTANCE = process.env.EVOLUTION_INSTANCE || 'shelly';
 const EVOLUTION_API_KEY  = process.env.EVOLUTION_API_KEY  || 'shelly_apikey_2024';
 function fmt(tel) { const d = tel.replace(/\D/g,''); return d.startsWith('55')?d:'55'+d; }
-function msg(ag) {
+function buildMsg(ag) {
   const [y,m,d] = ag.data.split('-');
   const nome = (ag.clienteNome||'').split(' ')[0];
   return `Olá, ${nome}! 😊\n\nVocê tem um agendamento no *Studio Shelly Rodrigues*:\n\n✂️ *Serviço:* ${ag.servicoNome}\n📅 *Data:* ${d}/${m}/${y}\n⏰ *Horário:* ${ag.hora}\n\nPara *confirmar*, responda: 👉 *SIM*\nPara cancelar, responda: *NÃO*\n\nAguardamos você! 💛`;
@@ -17,7 +17,7 @@ module.exports = async function handler(req, res) {
     const r = await fetch(`${EVOLUTION_URL}/message/sendText/${EVOLUTION_INSTANCE}`, {
       method: 'POST',
       headers: { 'apikey': EVOLUTION_API_KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ number: fmt(agendamento.clienteTelefone), text: msg(agendamento), options: { delay: 1200 } })
+      body: JSON.stringify({ number: fmt(agendamento.clienteTelefone), text: buildMsg(agendamento), options: { delay: 1200 } })
     });
     const data = await r.json();
     if (!r.ok) return res.status(502).json({ ok: false, error: data?.message || 'Erro Evolution API' });
